@@ -1,88 +1,94 @@
-const mongoose = require('mongoose');
+const { DataTypes, Sequelize } = require('sequelize');
 const bcrypt = require('bcryptjs');
 
-const userSchema = new mongoose.Schema({
+// Use DATABASE_URL from Railway
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  },
+  logging: false
+});
+
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
   email: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
     unique: true,
-    lowercase: true
+    validate: {
+      isEmail: true
+    }
   },
   password: {
-    type: String,
-    required: true,
-    minlength: 6
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      len: [6, 255]
+    }
   },
   firstName: {
-    type: String,
-    required: true
+    type: DataTypes.STRING,
+    allowNull: false
   },
   lastName: {
-    type: String,
-    required: true
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  phone: String,
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   taxInfo: {
-    filingStatus: {
-      type: String,
-      enum: ['single', 'married-joint', 'married-separate', 'head-of-household', 'qualifying-widow'],
-      default: 'single'
-    },
-    dependents: [{
-      name: String,
-      ssn: String,
-      relationship: String,
-      dateOfBirth: Date
-    }],
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      zipCode: String
+    type: DataTypes.JSONB,
+    defaultValue: {
+      filingStatus: 'single',
+      dependents: [],
+      address: {}
     }
   },
-  documents: [{
-    type: {
-      type: String,
-      enum: ['w2', 'w9', '1098', '1099']
-    },
-    filename: String,
-    uploadDate: {
-      type: Date,
-      default: Date.now
-    },
-    extractedData: mongoose.Schema.Types.Mixed
-  }],
+  documents: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
   taxReturn: {
-    form1040: mongoose.Schema.Types.Mixed,
-    status: {
-      type: String,
-      enum: ['draft', 'review', 'submitted', 'processing', 'completed'],
-      default: 'draft'
-    },
-    submissionDate: Date
-  },
-  payments: [{
-    amount: Number,
-    stripePaymentId: String,
-    status: String,
-    date: {
-      type: Date,
-      default: Date.now
+    type: DataTypes.JSONB,
+    defaultValue: {
+      form1040: null,
+      status: 'draft',
+      submissionDate: null
     }
-  }]
+  },
+  payments: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  }
 }, {
-  timestamps: true
+  timestamps: true,
+  hooks: {
+    beforeCreate: async (user) => {
+      if (user.password) {
+        user.password = await bcrypt.hash(user.password, 12);
+      }
+    },
+    beforeUpdate: async (user) => {
+      if (user.changed('password')) {
+        user.password = await bcrypt.hash(user.password, 12);
+      }
+    }
+  }
 });
 
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
-});
-
-userSchema.methods.comparePassword = async function(password) {
+// Instance method to compare password
+User.prototype.comparePassword = async function(password) {
   return await bcrypt.compare(password, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;
