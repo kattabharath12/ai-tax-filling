@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { Op } = require('sequelize');
 
 const router = express.Router();
 
@@ -17,21 +18,26 @@ router.put('/info', auth, [
 
     const { filingStatus, dependents, address } = req.body;
 
-    const user = await User.findById(req.userId);
+    const user = await User.findByPk(req.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.taxInfo = {
+    // Update taxInfo
+    const updatedTaxInfo = {
       filingStatus,
       dependents: dependents || [],
       address: address || {}
     };
 
-    await user.save();
+    await user.update({ taxInfo: updatedTaxInfo });
 
-    res.json({ message: 'Tax information updated successfully', taxInfo: user.taxInfo });
+    res.json({ 
+      message: 'Tax information updated successfully', 
+      taxInfo: updatedTaxInfo 
+    });
   } catch (error) {
+    console.error('Tax info update error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -39,13 +45,17 @@ router.put('/info', auth, [
 // Get tax information
 router.get('/info', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('taxInfo');
+    const user = await User.findByPk(req.userId, {
+      attributes: ['taxInfo']
+    });
+    
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json(user.taxInfo);
+    res.json(user.taxInfo || {});
   } catch (error) {
+    console.error('Get tax info error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -53,13 +63,14 @@ router.get('/info', auth, async (req, res) => {
 // Generate 1098 form data
 router.post('/generate-1098', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findByPk(req.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Find W-2 documents and extract data
-    const w2Documents = user.documents.filter(doc => doc.type === 'w2');
+    // Find W-2 documents from user.documents array
+    const documents = user.documents || [];
+    const w2Documents = documents.filter(doc => doc.type === 'w2');
     
     if (w2Documents.length === 0) {
       return res.status(400).json({ message: 'No W-2 documents found. Please upload W-2 first.' });
@@ -71,37 +82,45 @@ router.post('/generate-1098', auth, async (req, res) => {
       taxpayer: {
         name: `${user.firstName} ${user.lastName}`,
         ssn: w2Documents[0].extractedData?.employeeSSN || '',
-        address: user.taxInfo.address || {}
+        address: user.taxInfo?.address || {}
       },
       income: {
         wages: w2Documents.reduce((total, doc) => {
-          return total + (parseFloat(doc.extractedData?.wages) || 0);
+          return total + (parseFloat(doc.extractedData?.wages?.replace(/[,$]/g, '')) || 0);
         }, 0),
         federalTaxWithheld: w2Documents.reduce((total, doc) => {
-          return total + (parseFloat(doc.extractedData?.federalTaxWithheld) || 0);
+          return total + (parseFloat(doc.extractedData?.federalTaxWithheld?.replace(/[,$]/g, '')) || 0);
         }, 0),
         socialSecurityWages: w2Documents.reduce((total, doc) => {
-          return total + (parseFloat(doc.extractedData?.socialSecurityWages) || 0);
+          return total + (parseFloat(doc.extractedData?.socialSecurityWages?.replace(/[,$]/g, '')) || 0);
         }, 0),
         medicareWages: w2Documents.reduce((total, doc) => {
-          return total + (parseFloat(doc.extractedData?.medicareWages) || 0);
+          return total + (parseFloat(doc.extractedData?.medicareWages?.replace(/[,$]/g, '')) || 0);
         }, 0)
       },
       deductions: {
-        standardDeduction: user.taxInfo.filingStatus === 'married-joint' ? 27700 : 13850,
+        standardDeduction: user.taxInfo?.filingStatus === 'married-joint' ? 27700 : 13850,
         itemizedDeductions: 0
       },
-      filingStatus: user.taxInfo.filingStatus,
-      dependents: user.taxInfo.dependents || []
+      filingStatus: user.taxInfo?.filingStatus || 'single',
+      dependents: user.taxInfo?.dependents || []
     };
 
-    // Save the generated form
-    user.taxReturn.form1040 = form1098Data;
-    user.taxReturn.status = 'review';
-    await user.save();
+    // Update user's tax return
+    const updatedTaxReturn = {
+      ...user.taxReturn,
+      form1040: form1098Data,
+      status: 'review'
+    };
 
-    res.json({ message: '1098 form generated successfully', form1098: form1098Data });
+    await user.update({ taxReturn: updatedTaxReturn });
+
+    res.json({ 
+      message: '1098 form generated successfully', 
+      form1098: form1098Data 
+    });
   } catch (error) {
+    console.error('Generate 1098 error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -109,16 +128,29 @@ router.post('/generate-1098', auth, async (req, res) => {
 // Update 1098 form
 router.put('/update-1098', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findByPk(req.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.taxReturn.form1040 = { ...user.taxReturn.form1040, ...req.body };
-    await user.save();
+    const updatedForm = { 
+      ...user.taxReturn?.form1040, 
+      ...req.body 
+    };
 
-    res.json({ message: '1098 form updated successfully', form1098: user.taxReturn.form1040 });
+    const updatedTaxReturn = {
+      ...user.taxReturn,
+      form1040: updatedForm
+    };
+
+    await user.update({ taxReturn: updatedTaxReturn });
+
+    res.json({ 
+      message: '1098 form updated successfully', 
+      form1098: updatedForm 
+    });
   } catch (error) {
+    console.error('Update 1098 error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -126,13 +158,17 @@ router.put('/update-1098', auth, async (req, res) => {
 // Get 1098 form
 router.get('/form-1098', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findByPk(req.userId, {
+      attributes: ['taxReturn']
+    });
+    
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json(user.taxReturn.form1040 || {});
+    res.json(user.taxReturn?.form1040 || {});
   } catch (error) {
+    console.error('Get 1098 form error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -140,21 +176,26 @@ router.get('/form-1098', auth, async (req, res) => {
 // Submit tax return
 router.post('/submit', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findByPk(req.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (!user.taxReturn.form1040) {
+    if (!user.taxReturn?.form1040) {
       return res.status(400).json({ message: 'No tax return data found' });
     }
 
-    user.taxReturn.status = 'submitted';
-    user.taxReturn.submissionDate = new Date();
-    await user.save();
+    const updatedTaxReturn = {
+      ...user.taxReturn,
+      status: 'submitted',
+      submissionDate: new Date()
+    };
+
+    await user.update({ taxReturn: updatedTaxReturn });
 
     res.json({ message: 'Tax return submitted successfully' });
   } catch (error) {
+    console.error('Submit tax return error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
