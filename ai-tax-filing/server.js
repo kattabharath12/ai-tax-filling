@@ -1,10 +1,11 @@
 const express = require('express');
-const { Sequelize } = require('sequelize');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
+
+const { sequelize, User } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,18 +29,6 @@ app.use(limiter);
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// PostgreSQL connection using Railway's DATABASE_URL
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: 'postgres',
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false
-    }
-  },
-  logging: console.log // Show SQL queries in logs
-});
-
 // Initialize database and create tables
 async function initializeDatabase() {
   try {
@@ -47,40 +36,52 @@ async function initializeDatabase() {
     await sequelize.authenticate();
     console.log('✅ PostgreSQL connected successfully');
     
-    console.log('🔄 Loading User model...');
-    const User = require('./models/User');
-    console.log('✅ User model loaded');
+    console.log('🔄 Models registered:', Object.keys(sequelize.models));
     
-    console.log('🔄 Creating database tables...');
-    // Force sync - this will DROP existing tables and recreate them
-    await sequelize.sync({ force: true });
-    console.log('✅ Database tables created successfully');
+    console.log('🔄 Forcing table creation...');
+    await sequelize.sync({ 
+      force: true,
+      logging: console.log 
+    });
+    console.log('✅ Database sync completed');
     
-    // Verify tables exist
+    // Check what tables were actually created
     const [results] = await sequelize.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
+      SELECT table_name, column_name, data_type 
+      FROM information_schema.columns 
       WHERE table_schema = 'public'
-      ORDER BY table_name;
+      ORDER BY table_name, ordinal_position;
     `);
     
-    console.log('📋 Tables created:', results.map(r => r.table_name));
-    
-    if (results.length === 0) {
-      console.log('⚠️ No tables found after sync');
+    if (results.length > 0) {
+      console.log('✅ Tables and columns created:');
+      const tableGroups = results.reduce((acc, row) => {
+        if (!acc[row.table_name]) acc[row.table_name] = [];
+        acc[row.table_name].push(`${row.column_name} (${row.data_type})`);
+        return acc;
+      }, {});
+      
+      Object.entries(tableGroups).forEach(([table, columns]) => {
+        console.log(`📋 ${table}:`, columns.join(', '));
+      });
+    } else {
+      console.log('❌ No tables were created!');
     }
     
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
-    console.error('Error details:', error.message);
   }
 }
 
-// Start server and initialize database
+// Start server
 async function startServer() {
   await initializeDatabase();
   
-  // Routes (only register after database is ready)
+  // Make models available to routes
+  app.locals.User = User;
+  app.locals.sequelize = sequelize;
+  
+  // Routes
   app.use('/api/auth', require('./routes/auth'));
   app.use('/api/tax', require('./routes/tax'));
   app.use('/api/upload', require('./routes/upload'));
@@ -98,4 +99,4 @@ async function startServer() {
 
 startServer();
 
-module.exports = { sequelize };
+module.exports = { sequelize, User };
