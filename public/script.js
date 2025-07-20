@@ -337,8 +337,14 @@ function addDependentFields() {
             <input type="text" placeholder="Relationship" class="dependent-relationship rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
             <input type="date" placeholder="Date of Birth" class="dependent-dob rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
         </div>
-        <button type="button" onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-800 text-sm">Remove Dependent</button>
+        <button type="button" class="remove-dependent text-red-600 hover:text-red-800 text-sm">Remove Dependent</button>
     `;
+    
+    // Add event listener for remove button (no inline onclick)
+    const removeBtn = dependentDiv.querySelector('.remove-dependent');
+    removeBtn.addEventListener('click', function() {
+        dependentDiv.remove();
+    });
     
     container.appendChild(dependentDiv);
 }
