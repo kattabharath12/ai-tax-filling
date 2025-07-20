@@ -96,33 +96,45 @@ const extractW2Data = async (imagePath) => {
 
 // Upload W-2 document
 router.post('/w2', auth, upload.single('w2Document'), async (req, res) => {
-  console.log('=== W-2 UPLOAD DEBUG ===');
-  console.log('User ID:', req.userId);
+  console.log('🔥 W-2 UPLOAD REQUEST RECEIVED!');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  console.log('User ID from auth:', req.userId);
+  console.log('File in request:', !!req.file);
   
+  if (req.file) {
+    console.log('File details:', {
+      fieldname: req.file.fieldname,
+      originalname: req.file.originalname,
+      encoding: req.file.encoding,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      destination: req.file.destination,
+      filename: req.file.filename,
+      path: req.file.path
+    });
+  }
+
   try {
     if (!req.file) {
-      console.log('No file in request');
+      console.log('❌ No file in request');
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    console.log('File details:', {
-      filename: req.file.filename,
-      size: req.file.size,
-      mimetype: req.file.mimetype
-    });
-
+    console.log('🔍 Looking for user with ID:', req.userId);
     const user = await User.findByPk(req.userId);
     if (!user) {
-      console.log('User not found:', req.userId);
+      console.log('❌ User not found:', req.userId);
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('User found, current documents:', JSON.stringify(user.documents, null, 2));
+    console.log('✅ User found:', user.email);
+    console.log('Current documents before upload:', JSON.stringify(user.documents, null, 2));
 
     // Extract data from the uploaded document
-    console.log('Starting data extraction...');
+    console.log('📄 Starting data extraction...');
     const extractedData = await extractW2Data(req.file.path);
-    console.log('Extraction completed:', extractedData);
+    console.log('✅ Extraction completed:', extractedData);
 
     // Create document info
     const documentInfo = {
@@ -132,41 +144,44 @@ router.post('/w2', auth, upload.single('w2Document'), async (req, res) => {
       extractedData: extractedData
     };
 
-    console.log('Document info to save:', JSON.stringify(documentInfo, null, 2));
+    console.log('📝 Document info to save:', JSON.stringify(documentInfo, null, 2));
 
     // Add to user's documents array
-    const currentDocuments = user.documents || [];
-    console.log('Current documents before update:', currentDocuments);
+    const currentDocuments = Array.isArray(user.documents) ? [...user.documents] : [];
+    console.log('📋 Current documents array:', currentDocuments);
     
     currentDocuments.push(documentInfo);
-    console.log('Documents after push:', JSON.stringify(currentDocuments, null, 2));
+    console.log('📋 Documents after adding new one:', JSON.stringify(currentDocuments, null, 2));
 
     // Update the user
-    const updateResult = await user.update({ documents: currentDocuments });
-    console.log('Update result:', updateResult ? 'SUCCESS' : 'FAILED');
+    console.log('💾 Saving to database...');
+    await user.update({ documents: currentDocuments });
+    console.log('✅ Database update completed');
 
-    // Verify the save
+    // Verify the save worked
     const verifyUser = await User.findByPk(req.userId);
-    console.log('Verification - documents after save:', JSON.stringify(verifyUser.documents, null, 2));
+    console.log('🔍 Verification - documents after save:', JSON.stringify(verifyUser.documents, null, 2));
+    console.log('📊 Document count after save:', verifyUser.documents.length);
 
     // Clean up uploaded file
     try {
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
-        console.log('Temporary file deleted');
+        console.log('🗑️ Temporary file deleted');
       }
     } catch (unlinkError) {
-      console.warn('Could not delete temporary file:', unlinkError.message);
+      console.warn('⚠️ Could not delete temporary file:', unlinkError.message);
     }
 
-    console.log('=== W-2 UPLOAD COMPLETE ===');
+    console.log('🎉 W-2 UPLOAD COMPLETED SUCCESSFULLY!');
 
     res.json({
       message: 'W-2 document uploaded and processed successfully',
       extractedData: extractedData
     });
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('💥 Upload error:', error);
+    console.error('Error stack:', error.stack);
     
     // Clean up file if error occurs
     if (req.file && fs.existsSync(req.file.path)) {
