@@ -62,41 +62,45 @@ router.get('/info', auth, async (req, res) => {
 
 // Generate 1098 form data
 router.post('/generate-1098', auth, async (req, res) => {
-  console.log('=== FORM 1098 GENERATION DEBUG ===');
-  console.log('User ID:', req.userId);
+  console.log('🔥 FORM 1098 GENERATION REQUEST RECEIVED!');
+  console.log('User ID from auth:', req.userId);
   
   try {
     const user = await User.findByPk(req.userId);
     if (!user) {
-      console.log('User not found:', req.userId);
+      console.log('❌ User not found:', req.userId);
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('User found. Full user data:', JSON.stringify({
-      id: user.id,
-      email: user.email,
-      documents: user.documents,
-      taxInfo: user.taxInfo
-    }, null, 2));
+    console.log('✅ User found for form generation:', user.email);
+    console.log('📋 Raw user.documents:', JSON.stringify(user.documents, null, 2));
+    console.log('📊 Documents array type:', typeof user.documents);
+    console.log('📊 Documents array length:', user.documents ? user.documents.length : 'NULL');
 
     // Find W-2 documents from user.documents array
     const documents = user.documents || [];
-    console.log('Raw documents array:', JSON.stringify(documents, null, 2));
+    console.log('📋 Documents after null check:', documents);
+    console.log('📊 Is documents an array?', Array.isArray(documents));
     
     const w2Documents = documents.filter(doc => {
-      console.log('Checking document:', doc, 'Type:', doc.type, 'Is W-2?', doc.type === 'w2');
+      console.log('🔍 Checking document:', JSON.stringify(doc, null, 2));
+      console.log('🔍 Document type:', doc.type);
+      console.log('🔍 Type comparison result:', doc.type === 'w2');
       return doc.type === 'w2';
     });
     
-    console.log('Filtered W-2 documents:', JSON.stringify(w2Documents, null, 2));
-    console.log('W-2 documents count:', w2Documents.length);
+    console.log('📋 Filtered W-2 documents:', JSON.stringify(w2Documents, null, 2));
+    console.log('📊 W-2 documents count:', w2Documents.length);
     
     if (w2Documents.length === 0) {
-      console.log('NO W-2 DOCUMENTS FOUND!');
+      console.log('❌ NO W-2 DOCUMENTS FOUND AFTER FILTERING!');
+      console.log('📋 All documents for debugging:', JSON.stringify(documents, null, 2));
       return res.status(400).json({ message: 'No W-2 documents found. Please upload W-2 first.' });
     }
 
-    // Rest of the form generation code...
+    console.log('✅ Found W-2 documents, proceeding with form generation...');
+
+    // Generate form data
     const form1098Data = {
       taxYear: new Date().getFullYear() - 1,
       taxpayer: {
@@ -109,6 +113,7 @@ router.post('/generate-1098', auth, async (req, res) => {
           const wages = doc.extractedData?.wages;
           if (wages) {
             const cleanWages = parseFloat(wages.toString().replace(/[,$]/g, '')) || 0;
+            console.log(`💰 Adding wages from ${doc.filename}: ${cleanWages}`);
             return total + cleanWages;
           }
           return total;
@@ -146,7 +151,7 @@ router.post('/generate-1098', auth, async (req, res) => {
       dependents: user.taxInfo?.dependents || []
     };
 
-    console.log('Generated form data:', JSON.stringify(form1098Data, null, 2));
+    console.log('📋 Generated form data:', JSON.stringify(form1098Data, null, 2));
 
     // Update user's tax return
     const updatedTaxReturn = {
@@ -156,15 +161,17 @@ router.post('/generate-1098', auth, async (req, res) => {
     };
 
     await user.update({ taxReturn: updatedTaxReturn });
+    console.log('✅ Tax return updated in database');
 
-    console.log('=== FORM 1098 GENERATION COMPLETE ===');
+    console.log('🎉 FORM 1098 GENERATION COMPLETED SUCCESSFULLY!');
 
     res.json({ 
       message: '1098 form generated successfully', 
       form1098: form1098Data 
     });
   } catch (error) {
-    console.error('Generate 1098 error:', error);
+    console.error('💥 Generate 1098 error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
