@@ -1,12 +1,13 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
+const { User } = require('../database'); // Changed import
 const auth = require('../middleware/auth');
 
+// Rest of the file stays the same...
 const router = express.Router();
 
-// Register
+// Register endpoint (same code as before)
 router.post('/register', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
@@ -21,13 +22,11 @@ router.post('/register', [
 
     const { email, password, firstName, lastName, phone } = req.body;
 
-    // Check if user exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create user
     const user = await User.create({
       email,
       password,
@@ -57,7 +56,7 @@ router.post('/register', [
   }
 });
 
-// Login
+// Login and other endpoints stay the same...
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
   body('password').notEmpty()
@@ -101,7 +100,6 @@ router.post('/login', [
   }
 });
 
-// Get current user
 router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findByPk(req.userId, {
