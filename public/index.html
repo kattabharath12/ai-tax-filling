@@ -130,157 +130,223 @@
 </div>
             
 
-           <!-- Step 1: W-9 Form (replaces tax info) -->
-<div id="taxInfoStep" class="bg-white rounded-lg shadow p-6">
-    <h3 class="text-xl font-bold text-gray-900 mb-6">W-9 Form - Request for Taxpayer Identification</h3>
-    <form id="taxInfoForm">
-        <div class="space-y-6">
-            <!-- Name -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">1. Name (as shown on your income tax return)</label>
-                <input type="text" id="w9Name" required 
-                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
-                       placeholder="Enter your full legal name">
+          <!-- Step 1: W-9 Form (properly formatted) -->
+<div id="taxInfoStep" class="bg-white rounded-lg shadow p-8">
+    <div class="border border-gray-800 rounded-lg overflow-hidden">
+        <!-- Form Header -->
+        <div class="bg-gray-100 p-4 border-b border-gray-800">
+            <div class="text-center">
+                <h2 class="text-xl font-bold text-gray-900">Form W-9</h2>
+                <p class="text-sm text-gray-700">(Rev. October 2018)</p>
+                <p class="text-sm text-gray-700">Department of the Treasury - Internal Revenue Service</p>
+                <h3 class="text-lg font-bold text-gray-900 mt-2">Request for Taxpayer Identification Number and Certification</h3>
             </div>
-
-            <!-- Business Name -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">2. Business name/disregarded entity name (if different from above)</label>
-                <input type="text" id="w9BusinessName" 
-                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
-                       placeholder="Enter business name if applicable">
+            <div class="mt-4 text-sm text-gray-700">
+                <p class="font-medium">Give Form to the requester. Do not send to the IRS.</p>
             </div>
-
-            <!-- Federal Tax Classification -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">3. Check appropriate box for federal tax classification</label>
-                <select id="w9TaxClassification" required 
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
-                    <option value="">Select your tax classification</option>
-                    <option value="individual">Individual/sole proprietor or single-member LLC</option>
-                    <option value="c-corp">C Corporation</option>
-                    <option value="s-corp">S Corporation</option>
-                    <option value="partnership">Partnership</option>
-                    <option value="trust">Trust/estate</option>
-                    <option value="llc">Limited liability company (LLC)</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-
-            <!-- LLC Tax Classification (conditional) -->
-            <div id="llcTaxDiv" class="hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-2">LLC tax classification (required if LLC selected above)</label>
-                <select id="w9LlcTax" 
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
-                    <option value="">Select LLC tax classification</option>
-                    <option value="C">C = C corporation</option>
-                    <option value="S">S = S corporation</option>
-                    <option value="P">P = Partnership</option>
-                    <option value="D">D = Disregarded entity</option>
-                </select>
-            </div>
-
-            <!-- Address Information -->
-            <div>
-                <h4 class="text-lg font-medium text-gray-900 mb-4">Address Information</h4>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">5. Address (number, street, and apt. or suite no.)</label>
-                        <input type="text" id="w9Address" required 
-                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
-                               placeholder="123 Main Street, Apt 4B">
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">6. City</label>
-                            <input type="text" id="w9City" required 
-                                   class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
-                                   placeholder="City">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">State</label>
-                            <input type="text" id="w9State" required maxlength="2"
-                                   class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
-                                   placeholder="TX">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">ZIP code</label>
-                            <input type="text" id="w9Zip" required pattern="[0-9]{5}(-[0-9]{4})?"
-                                   class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border"
-                                   placeholder="12345">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Taxpayer Identification Number -->
-            <div>
-                <div class="bg-gray-800 text-white p-3 rounded-t-md">
-                    <h4 class="font-bold text-lg">Part I - Taxpayer Identification Number (TIN)</h4>
-                    <p class="text-sm mt-1">Enter your TIN in the appropriate box. For individuals, this is generally your social security number (SSN).</p>
-                </div>
-                <div class="border border-gray-300 rounded-b-md p-6 bg-gray-50">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Social Security Number</label>
-                            <input type="text" id="w9SSN" maxlength="11" placeholder="XXX-XX-XXXX"
-                                   class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
-                            <p class="text-xs text-gray-500 mt-1">For individuals and sole proprietors</p>
-                        </div>
-                        <div class="text-center">
-                            <span class="font-bold text-lg text-gray-600">OR</span>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Employer Identification Number</label>
-                            <input type="text" id="w9EIN" maxlength="10" placeholder="XX-XXXXXXX"
-                                   class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
-                            <p class="text-xs text-gray-500 mt-1">For businesses and entities</p>
-                        </div>
-                    </div>
-                    <div class="mt-4 p-3 bg-blue-50 rounded-md">
-                        <p class="text-sm text-blue-800">
-                            <strong>Note:</strong> You must provide either your SSN or EIN. Most individuals will use their SSN.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Filing Status (simplified) -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Filing Status</label>
-                <select id="filingStatus" required 
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
-                    <option value="">Select Filing Status</option>
-                    <option value="single">Single</option>
-                    <option value="married-joint">Married Filing Jointly</option>
-                    <option value="married-separate">Married Filing Separately</option>
-                    <option value="head-of-household">Head of Household</option>
-                    <option value="qualifying-widow">Qualifying Widow(er)</option>
-                </select>
-            </div>
-
-            <!-- Dependents -->
-            <div>
-                <h4 class="text-lg font-medium text-gray-900 mb-4">Dependents</h4>
-                <div id="dependentsContainer">
-                    <!-- Dependents will be added dynamically -->
-                </div>
-                <button type="button" id="addDependent" 
-                        class="mt-2 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700">
-                    Add Dependent
-                </button>
-            </div>
-
-            <button type="submit" 
-                    class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 text-lg font-medium">
-                Save W-9 Information and Continue
-            </button>
         </div>
-    </form>
-</div>
 
+        <!-- Form Content -->
+        <div class="p-6">
+            <form id="taxInfoForm" class="space-y-6">
+                <!-- Section 1: Name -->
+                <div class="border border-gray-400 rounded p-4">
+                    <label class="block text-sm font-bold text-gray-900 mb-2">
+                        1. Name (as shown on your income tax return). Name is required on this line; do not leave this line blank.
+                    </label>
+                    <input type="text" id="w9Name" required 
+                           class="w-full p-2 border-b-2 border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none text-lg"
+                           placeholder="Enter your full legal name">
+                </div>
+
+                <!-- Section 2: Business Name -->
+                <div class="border border-gray-400 rounded p-4">
+                    <label class="block text-sm font-bold text-gray-900 mb-2">
+                        2. Business name/disregarded entity name, if different from above
+                    </label>
+                    <input type="text" id="w9BusinessName" 
+                           class="w-full p-2 border-b-2 border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none text-lg"
+                           placeholder="Enter business name if applicable">
+                </div>
+
+                <!-- Section 3: Federal Tax Classification -->
+                <div class="border border-gray-400 rounded p-4">
+                    <label class="block text-sm font-bold text-gray-900 mb-3">
+                        3. Check appropriate box for federal tax classification of the person whose name is entered on line 1. Check only one of the following seven boxes.
+                    </label>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="individual" id="w9TaxClassification" class="mr-2">
+                                <span class="text-sm">Individual/sole proprietor or single-member LLC</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="c-corp" class="mr-2">
+                                <span class="text-sm">C Corporation</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="s-corp" class="mr-2">
+                                <span class="text-sm">S Corporation</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="partnership" class="mr-2">
+                                <span class="text-sm">Partnership</span>
+                            </label>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="trust" class="mr-2">
+                                <span class="text-sm">Trust/estate</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="llc" class="mr-2">
+                                <span class="text-sm">Limited liability company. Enter the tax classification (C=C corporation, S=S corporation, P=Partnership) ►</span>
+                            </label>
+                            <input type="text" id="w9LlcTax" placeholder="Enter: C, S, or P" 
+                                   class="ml-6 w-20 p-1 border border-gray-400 text-center" maxlength="1" disabled>
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="other" class="mr-2">
+                                <span class="text-sm">Other (see instructions) ►</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Exemptions -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="border border-gray-400 rounded p-4">
+                        <label class="block text-sm font-bold text-gray-900 mb-2">
+                            4. Exemptions (codes apply only to certain entities, not individuals; see instructions on page 3):
+                        </label>
+                        <div class="space-y-2">
+                            <div>
+                                <label class="text-sm">Exempt payee code (if any)</label>
+                                <input type="text" id="w9ExemptCode" 
+                                       class="w-full p-1 border border-gray-400 mt-1">
+                            </div>
+                            <div>
+                                <label class="text-sm">Exemption from FATCA reporting code (if any)</label>
+                                <input type="text" id="w9FatcaCode" 
+                                       class="w-full p-1 border border-gray-400 mt-1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 5-7: Address -->
+                <div class="border border-gray-400 rounded p-4">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-900 mb-2">
+                                5. Address (number, street, and apt. or suite no.) See instructions.
+                            </label>
+                            <input type="text" id="w9Address" required 
+                                   class="w-full p-2 border-b-2 border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none"
+                                   placeholder="123 Main Street, Apt 4B">
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-900 mb-2">6. City, state, and ZIP code</label>
+                                <input type="text" id="w9City" required 
+                                       class="w-full p-2 border-b-2 border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none"
+                                       placeholder="City">
+                            </div>
+                            <div>
+                                <input type="text" id="w9State" required maxlength="2"
+                                       class="w-full p-2 border-b-2 border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none mt-7"
+                                       placeholder="State">
+                            </div>
+                            <div>
+                                <input type="text" id="w9Zip" required pattern="[0-9]{5}(-[0-9]{4})?"
+                                       class="w-full p-2 border-b-2 border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none mt-7"
+                                       placeholder="ZIP">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-gray-900 mb-2">
+                                7. List account number(s) here (optional)
+                            </label>
+                            <input type="text" id="w9AccountNumbers" 
+                                   class="w-full p-2 border-b-2 border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none"
+                                   placeholder="Account numbers (optional)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Part I: Taxpayer Identification Number -->
+                <div class="border-2 border-gray-800 rounded">
+                    <div class="bg-gray-800 text-white p-3">
+                        <h4 class="font-bold text-lg">Part I - Taxpayer Identification Number (TIN)</h4>
+                        <p class="text-sm mt-1">Enter your TIN in the appropriate box. The TIN provided must match the name given on line 1 to avoid backup withholding. For individuals, this is generally your social security number (SSN). For other entities, it is your employer identification number (EIN). If you do not have a number, see How to get a TIN in the instructions.</p>
+                    </div>
+                    <div class="p-6 bg-gray-50">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="text-center">
+                                <label class="block text-sm font-bold text-gray-900 mb-2">Social security number</label>
+                                <input type="text" id="w9SSN" maxlength="11" placeholder="XXX-XX-XXXX"
+                                       class="w-full p-3 text-center text-xl border-2 border-gray-400 rounded focus:border-blue-500 focus:outline-none font-mono">
+                                <p class="text-xs text-gray-600 mt-2">For individuals and sole proprietors</p>
+                            </div>
+                            <div class="text-center">
+                                <label class="block text-sm font-bold text-gray-900 mb-2">Employer identification number</label>
+                                <input type="text" id="w9EIN" maxlength="10" placeholder="XX-XXXXXXX"
+                                       class="w-full p-3 text-center text-xl border-2 border-gray-400 rounded focus:border-blue-500 focus:outline-none font-mono">
+                                <p class="text-xs text-gray-600 mt-2">For businesses and entities</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                            <p class="text-sm text-blue-800">
+                                <strong>Note:</strong> You must provide either your SSN or EIN. Most individuals will use their SSN. Businesses typically use an EIN.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Tax Filing Information -->
+                <div class="border border-gray-400 rounded p-4 bg-yellow-50">
+                    <h4 class="font-bold text-gray-900 mb-4">Additional Information for Tax Filing</h4>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-900 mb-2">Filing Status</label>
+                            <select id="filingStatus" required 
+                                    class="w-full p-3 border-2 border-gray-400 rounded focus:border-blue-500 focus:outline-none">
+                                <option value="">Select Filing Status</option>
+                                <option value="single">Single</option>
+                                <option value="married-joint">Married Filing Jointly</option>
+                                <option value="married-separate">Married Filing Separately</option>
+                                <option value="head-of-household">Head of Household</option>
+                                <option value="qualifying-widow">Qualifying Widow(er)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <h5 class="font-bold text-gray-900 mb-3">Dependents</h5>
+                            <div id="dependentsContainer" class="space-y-3">
+                                <!-- Dependents will be added dynamically -->
+                            </div>
+                            <button type="button" id="addDependent" 
+                                    class="mt-3 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 text-sm">
+                                + Add Dependent
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="text-center pt-6">
+                    <button type="submit" 
+                            class="bg-green-600 text-white py-4 px-8 rounded-lg hover:bg-green-700 text-lg font-bold shadow-lg">
+                        Complete W-9 Form and Continue to File Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
             <!-- Step 2: Upload W-2 -->
             <div id="uploadStep" class="bg-white rounded-lg shadow p-6 hidden">
                 <h3 class="text-xl font-bold text-gray-900 mb-6">Upload W-2 Documents</h3>
