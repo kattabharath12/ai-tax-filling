@@ -137,8 +137,10 @@ function showDashboard() {
         document.getElementById('userEmail').textContent = currentUser.email;
     }
     
-    // Always start at step 1 when showing dashboard
-    showStep(1);
+    // Only go to step 1 if we're not already showing the dashboard
+    if (currentStep === 1) {
+        showStep(1);
+    }
 }
 
 function toggleAuthForms(form) {
@@ -662,14 +664,12 @@ async function loadUserData() {
                 populateTaxInfoForm(userData.taxInfo);
             }
             
-            // Determine current step based on user progress
-            determineCurrentStep(userData);
+            // Don't automatically change steps - let user navigate manually
         }
     } catch (error) {
         console.error('Failed to load user data:', error);
     }
 }
-
 function populateTaxInfoForm(taxInfo) {
     if (taxInfo.filingStatus) {
         const filingStatusEl = document.getElementById('filingStatus');
