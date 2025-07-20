@@ -68,9 +68,13 @@ router.post('/generate-1098', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    console.log('User documents:', JSON.stringify(user.documents, null, 2));
+
     // Find W-2 documents from user.documents array
     const documents = user.documents || [];
     const w2Documents = documents.filter(doc => doc.type === 'w2');
+    
+    console.log('W-2 documents found:', w2Documents.length);
     
     if (w2Documents.length === 0) {
       return res.status(400).json({ message: 'No W-2 documents found. Please upload W-2 first.' });
@@ -81,21 +85,41 @@ router.post('/generate-1098', auth, async (req, res) => {
       taxYear: new Date().getFullYear() - 1,
       taxpayer: {
         name: `${user.firstName} ${user.lastName}`,
-        ssn: w2Documents[0].extractedData?.employeeSSN || '',
+        ssn: w2Documents[0].extractedData?.employeeSSN || '***-**-****',
         address: user.taxInfo?.address || {}
       },
       income: {
         wages: w2Documents.reduce((total, doc) => {
-          return total + (parseFloat(doc.extractedData?.wages?.replace(/[,$]/g, '')) || 0);
+          const wages = doc.extractedData?.wages;
+          if (wages) {
+            const cleanWages = parseFloat(wages.toString().replace(/[,$]/g, '')) || 0;
+            return total + cleanWages;
+          }
+          return total;
         }, 0),
         federalTaxWithheld: w2Documents.reduce((total, doc) => {
-          return total + (parseFloat(doc.extractedData?.federalTaxWithheld?.replace(/[,$]/g, '')) || 0);
+          const withheld = doc.extractedData?.federalTaxWithheld;
+          if (withheld) {
+            const cleanWithheld = parseFloat(withheld.toString().replace(/[,$]/g, '')) || 0;
+            return total + cleanWithheld;
+          }
+          return total;
         }, 0),
         socialSecurityWages: w2Documents.reduce((total, doc) => {
-          return total + (parseFloat(doc.extractedData?.socialSecurityWages?.replace(/[,$]/g, '')) || 0);
+          const ssWages = doc.extractedData?.socialSecurityWages;
+          if (ssWages) {
+            const cleanSSWages = parseFloat(ssWages.toString().replace(/[,$]/g, '')) || 0;
+            return total + cleanSSWages;
+          }
+          return total;
         }, 0),
         medicareWages: w2Documents.reduce((total, doc) => {
-          return total + (parseFloat(doc.extractedData?.medicareWages?.replace(/[,$]/g, '')) || 0);
+          const medicareWages = doc.extractedData?.medicareWages;
+          if (medicareWages) {
+            const cleanMedicareWages = parseFloat(medicareWages.toString().replace(/[,$]/g, '')) || 0;
+            return total + cleanMedicareWages;
+          }
+          return total;
         }, 0)
       },
       deductions: {
@@ -105,6 +129,8 @@ router.post('/generate-1098', auth, async (req, res) => {
       filingStatus: user.taxInfo?.filingStatus || 'single',
       dependents: user.taxInfo?.dependents || []
     };
+
+    console.log('Generated form data:', JSON.stringify(form1098Data, null, 2));
 
     // Update user's tax return
     const updatedTaxReturn = {
