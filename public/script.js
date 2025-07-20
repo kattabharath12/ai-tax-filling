@@ -57,7 +57,7 @@ function initializeEventListeners() {
         signupForm.addEventListener('submit', handleSignup);
     }
 
-    // Tax info form
+    // W-9/Tax info form (now combined)
     const taxInfoForm = document.getElementById('taxInfoForm');
     const addDependentBtn = document.getElementById('addDependent');
     
@@ -67,6 +67,49 @@ function initializeEventListeners() {
     
     if (addDependentBtn) {
         addDependentBtn.addEventListener('click', addDependentFields);
+    }
+
+    // W-9 specific listeners
+    const w9TaxClassification = document.getElementById('w9TaxClassification');
+    const w9SSN = document.getElementById('w9SSN');
+    const w9EIN = document.getElementById('w9EIN');
+    
+    if (w9TaxClassification) {
+        w9TaxClassification.addEventListener('change', function(e) {
+            const llcDiv = document.getElementById('llcTaxDiv');
+            const llcSelect = document.getElementById('w9LlcTax');
+            
+            if (e.target.value === 'llc') {
+                llcDiv.classList.remove('hidden');
+                llcSelect.required = true;
+            } else {
+                llcDiv.classList.add('hidden');
+                llcSelect.required = false;
+                llcSelect.value = '';
+            }
+        });
+    }
+    
+    if (w9SSN) {
+        w9SSN.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 3 && value.length <= 5) {
+                value = `${value.slice(0, 3)}-${value.slice(3)}`;
+            } else if (value.length > 5) {
+                value = `${value.slice(0, 3)}-${value.slice(3, 5)}-${value.slice(5, 9)}`;
+            }
+            e.target.value = value;
+        });
+    }
+    
+    if (w9EIN) {
+        w9EIN.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 2) {
+                value = `${value.slice(0, 2)}-${value.slice(2, 9)}`;
+            }
+            e.target.value = value;
+        });
     }
 
     // File upload
@@ -107,6 +150,59 @@ function initializeEventListeners() {
     if (finalSubmit) {
         finalSubmit.addEventListener('click', handleFinalSubmission);
     }
+
+    // Debug buttons (if they exist)
+    const debugBtn = document.getElementById('debugBtn');
+    if (debugBtn) {
+        debugBtn.addEventListener('click', async () => {
+            try {
+                console.log('Making debug request...');
+                const response = await fetch('/api/tax/debug-user', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                const data = await response.json();
+                console.log('=== DEBUG DATABASE CONTENT ===');
+                console.log('User ID:', data.userId);
+                console.log('Email:', data.email);
+                console.log('Documents Count:', data.documentsCount);
+                console.log('Documents:', data.documents);
+                console.log('Tax Info:', data.taxInfo);
+                console.log('===============================');
+                
+                showAlert(`Found ${data.documentsCount} documents. Check console for details.`, 'info');
+            } catch (error) {
+                console.error('Debug error:', error);
+                showAlert('Debug request failed. Check console.', 'error');
+            }
+        });
+    }
+
+    const testUploadBtn = document.getElementById('testUploadRoute');
+    if (testUploadBtn) {
+        testUploadBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/upload/documents', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Upload route works! Documents:', data);
+                    showAlert(`Upload route works! Found ${data.length} documents.`, 'success');
+                } else {
+                    console.log('Upload route response:', response.status, response.statusText);
+                    showAlert(`Upload route returned: ${response.status}`, 'warning');
+                }
+            } catch (error) {
+                console.error('Upload route test error:', error);
+                showAlert('Upload route test failed', 'error');
+            }
+        });
+    }
 }
 
 // UI Functions
@@ -134,7 +230,10 @@ function showDashboard() {
     if (logoutBtn) logoutBtn.classList.remove('hidden');
     
     if (currentUser) {
-        document.getElementById('userEmail').textContent = currentUser.email;
+        const emailElement = document.getElementById('userEmail');
+        if (emailElement) {
+            emailElement.textContent = currentUser.email;
+        }
     }
     
     // Only go to step 1 if we're not already showing the dashboard
@@ -281,19 +380,34 @@ function handleLogout() {
     showAlert('Logged out successfully', 'success');
 }
 
-// Tax Information Functions
+// W-9/Tax Information Functions (Updated for W-9)
 async function handleTaxInfoSubmit(e) {
     e.preventDefault();
-    console.log('Tax info form submitted');
+    console.log('W-9 form submitted');
     showLoading(true);
 
-    const filingStatus = document.getElementById('filingStatus').value;
+    // Collect W-9 data
+    const w9Data = {
+        name: document.getElementById('w9Name')?.value || '',
+        businessName: document.getElementById('w9BusinessName')?.value || '',
+        federalTaxClassification: document.getElementById('w9TaxClassification')?.value || '',
+        llcTaxClassification: document.getElementById('w9LlcTax')?.value || '',
+        address: document.getElementById('w9Address')?.value || '',
+        city: document.getElementById('w9City')?.value || '',
+        state: document.getElementById('w9State')?.value || '',
+        zip: document.getElementById('w9Zip')?.value || '',
+        ssn: document.getElementById('w9SSN')?.value || '',
+        ein: document.getElementById('w9EIN')?.value || ''
+    };
+
+    // Collect traditional tax info
+    const filingStatus = document.getElementById('filingStatus')?.value || '';
     const dependents = collectDependents();
     const address = {
-        street: document.getElementById('addressStreet').value,
-        city: document.getElementById('addressCity').value,
-        state: document.getElementById('addressState').value,
-        zipCode: document.getElementById('addressZip').value
+        street: document.getElementById('w9Address')?.value || '',
+        city: document.getElementById('w9City')?.value || '',
+        state: document.getElementById('w9State')?.value || '',
+        zipCode: document.getElementById('w9Zip')?.value || ''
     };
 
     try {
@@ -303,20 +417,25 @@ async function handleTaxInfoSubmit(e) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({ filingStatus, dependents, address })
+            body: JSON.stringify({ 
+                filingStatus, 
+                dependents, 
+                address,
+                w9Data 
+            })
         });
 
         const data = await response.json();
 
         if (response.ok) {
-            showAlert('Tax information saved successfully!', 'success');
-            showStep(2);
+            showAlert('W-9 and tax information saved successfully!', 'success');
+            showStep(2); // Go directly to upload step
         } else {
-            showAlert(data.message || 'Failed to save tax information', 'error');
+            showAlert(data.message || 'Failed to save information', 'error');
         }
     } catch (error) {
-        console.error('Tax info error:', error);
-        showAlert('Failed to save tax information', 'error');
+        console.error('Form submission error:', error);
+        showAlert('Failed to save information', 'error');
     } finally {
         showLoading(false);
     }
@@ -325,6 +444,8 @@ async function handleTaxInfoSubmit(e) {
 function addDependentFields() {
     console.log('Adding dependent fields');
     const container = document.getElementById('dependentsContainer');
+    if (!container) return;
+    
     const dependentIndex = container.children.length;
     
     const dependentDiv = document.createElement('div');
@@ -352,6 +473,7 @@ function addDependentFields() {
 function collectDependents() {
     const dependents = [];
     const container = document.getElementById('dependentsContainer');
+    if (!container) return dependents;
     
     container.querySelectorAll('div').forEach(div => {
         const name = div.querySelector('.dependent-name')?.value;
@@ -371,11 +493,20 @@ async function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    console.log('File selected:', file.name);
+    console.log('🔥 FRONTEND: File upload started');
+    console.log('File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+    });
+    console.log('Auth token exists:', !!authToken);
+
     showLoading(true);
 
     const formData = new FormData();
     formData.append('w2Document', file);
+
+    console.log('📤 Making upload request to /api/upload/w2');
 
     try {
         const response = await fetch('/api/upload/w2', {
@@ -386,7 +517,14 @@ async function handleFileUpload(e) {
             body: formData
         });
 
+        console.log('📥 Upload response received:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok
+        });
+
         const data = await response.json();
+        console.log('📄 Response data:', data);
 
         if (response.ok) {
             showAlert('W-2 uploaded and processed successfully!', 'success');
@@ -403,7 +541,7 @@ async function handleFileUpload(e) {
             showAlert(data.message || 'Upload failed', 'error');
         }
     } catch (error) {
-        console.error('Upload error:', error);
+        console.error('💥 Upload error:', error);
         showAlert('Upload failed. Please try again.', 'error');
     } finally {
         showLoading(false);
@@ -635,9 +773,14 @@ async function handleFinalSubmission() {
         const data = await response.json();
 
         if (response.ok) {
-            document.getElementById('submissionStep').classList.add('hidden');
-            document.getElementById('successMessage').classList.remove('hidden');
-            document.getElementById('submissionId').textContent = generateSubmissionId();
+            const submissionStep = document.getElementById('submissionStep');
+            const successMessage = document.getElementById('successMessage');
+            const submissionId = document.getElementById('submissionId');
+            
+            if (submissionStep) submissionStep.classList.add('hidden');
+            if (successMessage) successMessage.classList.remove('hidden');
+            if (submissionId) submissionId.textContent = generateSubmissionId();
+            
             showAlert('Tax return submitted successfully!', 'success');
         } else {
             showAlert(data.message || 'Submission failed', 'error');
@@ -669,99 +812,132 @@ async function loadUserData() {
             if (userData.taxInfo) {
                 populateTaxInfoForm(userData.taxInfo);
             }
-            
-            // Don't automatically change steps - let user navigate manually
         }
     } catch (error) {
         console.error('Failed to load user data:', error);
     }
 }
+
 function populateTaxInfoForm(taxInfo) {
-    if (taxInfo.filingStatus) {
-        const filingStatusEl = document.getElementById('filingStatus');
-        if (filingStatusEl) filingStatusEl.value = taxInfo.filingStatus;
-    }
-    
-    if (taxInfo.address) {
-        const addressFields = ['addressStreet', 'addressCity', 'addressState', 'addressZip'];
-        const addressKeys = ['street', 'city', 'state', 'zipCode'];
+    // Populate W-9 fields if they exist
+    if (taxInfo.w9) {
+        const w9 = taxInfo.w9;
         
-        addressFields.forEach((fieldId, index) => {
-            const field = document.getElementById(fieldId);
-            if (field) field.value = taxInfo.address[addressKeys[index]] || '';
-        });
-    }
-    
-    if (taxInfo.dependents && taxInfo.dependents.length > 0) {
-        taxInfo.dependents.forEach(() => addDependentFields());
-        // Populate dependent fields
-        const dependentDivs = document.getElementById('dependentsContainer').children;
-        taxInfo.dependents.forEach((dependent, index) => {
-            if (dependentDivs[index]) {
-                const div = dependentDivs[index];
-                const nameField = div.querySelector('.dependent-name');
-                const ssnField = div.querySelector('.dependent-ssn');
-                const relationshipField = div.querySelector('.dependent-relationship');
-                const dobField = div.querySelector('.dependent-dob');
-                
-                if (nameField) nameField.value = dependent.name || '';
-                if (ssnField) ssnField.value = dependent.ssn || '';
-                if (relationshipField) relationshipField.value = dependent.relationship || '';
-                if (dobField) dobField.value = dependent.dateOfBirth || '';
-            }
-        });
-    }
+        const fields = [
+            { id: 'w9Name', value: w9.name },
+            { id: 'w9BusinessName', value: w9.businessName },
+            { id: 'w9TaxClassification', value: w9.federalTaxClassification },
+            { id: 'w9LlcTax', value: w9.llcTaxClassification },
+            { id: 'w9Address', value: w9.address },
+            { id: 'w9City', value: w9.city },
+           { id: 'w9State', value: w9.state },
+           { id: 'w9Zip', value: w9.zip },
+           { id: 'w9SSN', value: w9.ssn },
+           { id: 'w9EIN', value: w9.ein }
+       ];
+       
+       fields.forEach(field => {
+           const element = document.getElementById(field.id);
+           if (element && field.value) {
+               element.value = field.value;
+           }
+       });
+   }
+   
+   // Populate traditional tax info fields
+   if (taxInfo.filingStatus) {
+       const filingStatusEl = document.getElementById('filingStatus');
+       if (filingStatusEl) filingStatusEl.value = taxInfo.filingStatus;
+   }
+   
+   if (taxInfo.address) {
+       const addressFields = [
+           { id: 'w9Address', key: 'street' },
+           { id: 'w9City', key: 'city' },
+           { id: 'w9State', key: 'state' },
+           { id: 'w9Zip', key: 'zipCode' }
+       ];
+       
+       addressFields.forEach(field => {
+           const element = document.getElementById(field.id);
+           if (element && !element.value) { // Only populate if not already filled by W-9 data
+               element.value = taxInfo.address[field.key] || '';
+           }
+       });
+   }
+   
+   if (taxInfo.dependents && taxInfo.dependents.length > 0) {
+       taxInfo.dependents.forEach(() => addDependentFields());
+       // Populate dependent fields
+       const dependentDivs = document.getElementById('dependentsContainer')?.children;
+       if (dependentDivs) {
+           taxInfo.dependents.forEach((dependent, index) => {
+               if (dependentDivs[index]) {
+                   const div = dependentDivs[index];
+                   const nameField = div.querySelector('.dependent-name');
+                   const ssnField = div.querySelector('.dependent-ssn');
+                   const relationshipField = div.querySelector('.dependent-relationship');
+                   const dobField = div.querySelector('.dependent-dob');
+                   
+                   if (nameField) nameField.value = dependent.name || '';
+                   if (ssnField) ssnField.value = dependent.ssn || '';
+                   if (relationshipField) relationshipField.value = dependent.relationship || '';
+                   if (dobField) dobField.value = dependent.dateOfBirth || '';
+               }
+           });
+       }
+   }
 }
 
 function determineCurrentStep(userData) {
-    // Determine which step to show based on user's progress
-    if (!userData.taxInfo || !userData.taxInfo.filingStatus) {
-        showStep(1);
-    } else if (!userData.documents || userData.documents.filter(doc => doc.type === 'w2').length === 0) {
-        showStep(2);
-    } else if (!userData.taxReturn || !userData.taxReturn.form1040) {
-        showStep(2);
-    } else if (!userData.payments || userData.payments.length === 0) {
-        showStep(3);
-    } else if (userData.taxReturn.status === 'draft' || userData.taxReturn.status === 'review') {
-        showStep(5);
-    } else {
-        showStep(1); // Default to step 1
-    }
+   // Determine which step to show based on user's progress
+   if (!userData.taxInfo || (!userData.taxInfo.filingStatus && !userData.taxInfo.w9)) {
+       showStep(1);
+   } else if (!userData.documents || userData.documents.filter(doc => doc.type === 'w2').length === 0) {
+       showStep(2);
+   } else if (!userData.taxReturn || !userData.taxReturn.form1040) {
+       showStep(2);
+   } else if (!userData.payments || userData.payments.length === 0) {
+       showStep(3);
+   } else if (userData.taxReturn.status === 'draft' || userData.taxReturn.status === 'review') {
+       showStep(5);
+   } else {
+       showStep(1); // Default to step 1
+   }
 }
 
 function showLoading(show) {
-    const spinner = document.getElementById('loadingSpinner');
-    if (spinner) {
-        spinner.classList.toggle('hidden', !show);
-    }
+   const spinner = document.getElementById('loadingSpinner');
+   if (spinner) {
+       spinner.classList.toggle('hidden', !show);
+   }
 }
 
 function showAlert(message, type = 'info') {
-    console.log(`Alert (${type}):`, message);
-    
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-        type === 'success' ? 'bg-green-500 text-white' :
-        type === 'error' ? 'bg-red-500 text-white' :
-        type === 'warning' ? 'bg-yellow-500 text-black' :
-        'bg-blue-500 text-white'
-    }`;
-    alertDiv.textContent = message;
-    
-    document.body.appendChild(alertDiv);
-    
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.parentNode.removeChild(alertDiv);
-        }
-    }, 5000);
+   console.log(`Alert (${type}):`, message);
+   
+   const alertDiv = document.createElement('div');
+   alertDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+       type === 'success' ? 'bg-green-500 text-white' :
+       type === 'error' ? 'bg-red-500 text-white' :
+       type === 'warning' ? 'bg-yellow-500 text-black' :
+       'bg-blue-500 text-white'
+   }`;
+   alertDiv.textContent = message;
+   
+   document.body.appendChild(alertDiv);
+   
+   setTimeout(() => {
+       if (alertDiv.parentNode) {
+           alertDiv.parentNode.removeChild(alertDiv);
+       }
+   }, 5000);
 }
 
 function enableFormEditing() {
-    showAlert('Form editing enabled. You can modify the values above.', 'info');
+   showAlert('Form editing enabled. You can modify the values above.', 'info');
 }
 
 function generateSubmissionId() {
-    return 'TX' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 5).toUpperCase();
+   return 'TX' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 5).toUpperCase();
 }
