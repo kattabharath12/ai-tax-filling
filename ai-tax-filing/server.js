@@ -37,39 +37,65 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
       rejectUnauthorized: false
     }
   },
-  logging: false
+  logging: console.log // Show SQL queries in logs
 });
 
-// Test database connection
-sequelize.authenticate()
-  .then(() => {
+// Initialize database and create tables
+async function initializeDatabase() {
+  try {
+    console.log('🔄 Connecting to PostgreSQL...');
+    await sequelize.authenticate();
     console.log('✅ PostgreSQL connected successfully');
-    // Sync database tables
-    return sequelize.sync({ alter: true });
-  })
-  .then(() => {
-    console.log('✅ Database tables synced');
-  })
-  .catch(err => {
-    console.error('❌ Database connection error:', err);
+    
+    console.log('🔄 Loading User model...');
+    const User = require('./models/User');
+    console.log('✅ User model loaded');
+    
+    console.log('🔄 Creating database tables...');
+    // Force sync - this will DROP existing tables and recreate them
+    await sequelize.sync({ force: true });
+    console.log('✅ Database tables created successfully');
+    
+    // Verify tables exist
+    const [results] = await sequelize.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+      ORDER BY table_name;
+    `);
+    
+    console.log('📋 Tables created:', results.map(r => r.table_name));
+    
+    if (results.length === 0) {
+      console.log('⚠️ No tables found after sync');
+    }
+    
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    console.error('Error details:', error.message);
+  }
+}
+
+// Start server and initialize database
+async function startServer() {
+  await initializeDatabase();
+  
+  // Routes (only register after database is ready)
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/tax', require('./routes/tax'));
+  app.use('/api/upload', require('./routes/upload'));
+  app.use('/api/payment', require('./routes/payment'));
+
+  // Serve frontend
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
 
-// Make sequelize available to routes
-app.locals.db = sequelize;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+}
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/tax', require('./routes/tax'));
-app.use('/api/upload', require('./routes/upload'));
-app.use('/api/payment', require('./routes/payment'));
-
-// Serve frontend
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+startServer();
 
 module.exports = { sequelize };
