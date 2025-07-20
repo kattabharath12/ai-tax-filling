@@ -69,27 +69,32 @@ function initializeEventListeners() {
         addDependentBtn.addEventListener('click', addDependentFields);
     }
 
-    // W-9 specific listeners
-    const w9TaxClassification = document.getElementById('w9TaxClassification');
+    // W-9 specific listeners - updated for radio buttons
+    const taxClassificationRadios = document.querySelectorAll('input[name="taxClassification"]');
+    const llcInput = document.getElementById('w9LlcTax');
     const w9SSN = document.getElementById('w9SSN');
     const w9EIN = document.getElementById('w9EIN');
     
-    if (w9TaxClassification) {
-        w9TaxClassification.addEventListener('change', function(e) {
-            const llcDiv = document.getElementById('llcTaxDiv');
-            const llcSelect = document.getElementById('w9LlcTax');
-            
-            if (e.target.value === 'llc') {
-                llcDiv.classList.remove('hidden');
-                llcSelect.required = true;
-            } else {
-                llcDiv.classList.add('hidden');
-                llcSelect.required = false;
-                llcSelect.value = '';
+    // Handle tax classification radio buttons
+    taxClassificationRadios.forEach(radio => {
+        radio.addEventListener('change', function(e) {
+            if (llcInput) {
+                if (e.target.value === 'llc') {
+                    llcInput.disabled = false;
+                    llcInput.required = true;
+                    llcInput.classList.remove('bg-gray-200');
+                    llcInput.focus();
+                } else {
+                    llcInput.disabled = true;
+                    llcInput.required = false;
+                    llcInput.value = '';
+                    llcInput.classList.add('bg-gray-200');
+                }
             }
         });
-    }
+    });
     
+    // Format SSN input
     if (w9SSN) {
         w9SSN.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
@@ -102,6 +107,7 @@ function initializeEventListeners() {
         });
     }
     
+    // Format EIN input
     if (w9EIN) {
         w9EIN.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
@@ -380,24 +386,46 @@ function handleLogout() {
     showAlert('Logged out successfully', 'success');
 }
 
-// W-9/Tax Information Functions (Updated for W-9)
+// W-9/Tax Information Functions (Updated for radio buttons)
 async function handleTaxInfoSubmit(e) {
     e.preventDefault();
     console.log('W-9 form submitted');
     showLoading(true);
 
+    // Get selected tax classification from radio buttons
+    const selectedClassification = document.querySelector('input[name="taxClassification"]:checked');
+    
+    // Validate that either SSN or EIN is provided
+    const ssn = document.getElementById('w9SSN')?.value || '';
+    const ein = document.getElementById('w9EIN')?.value || '';
+    
+    if (!ssn && !ein) {
+        showAlert('Please provide either a Social Security Number or Employer Identification Number.', 'error');
+        showLoading(false);
+        return;
+    }
+    
+    if (!selectedClassification) {
+        showAlert('Please select a federal tax classification.', 'error');
+        showLoading(false);
+        return;
+    }
+
     // Collect W-9 data
     const w9Data = {
         name: document.getElementById('w9Name')?.value || '',
         businessName: document.getElementById('w9BusinessName')?.value || '',
-        federalTaxClassification: document.getElementById('w9TaxClassification')?.value || '',
+        federalTaxClassification: selectedClassification.value,
         llcTaxClassification: document.getElementById('w9LlcTax')?.value || '',
+        exemptPayeeCode: document.getElementById('w9ExemptCode')?.value || '',
+        fatcaCode: document.getElementById('w9FatcaCode')?.value || '',
         address: document.getElementById('w9Address')?.value || '',
         city: document.getElementById('w9City')?.value || '',
         state: document.getElementById('w9State')?.value || '',
         zip: document.getElementById('w9Zip')?.value || '',
-        ssn: document.getElementById('w9SSN')?.value || '',
-        ein: document.getElementById('w9EIN')?.value || ''
+        accountNumbers: document.getElementById('w9AccountNumbers')?.value || '',
+        ssn: ssn,
+        ein: ein
     };
 
     // Collect traditional tax info
@@ -449,14 +477,14 @@ function addDependentFields() {
     const dependentIndex = container.children.length;
     
     const dependentDiv = document.createElement('div');
-    dependentDiv.className = 'p-4 border rounded-lg space-y-3';
+    dependentDiv.className = 'p-4 border border-gray-300 rounded-lg space-y-3 bg-white';
     dependentDiv.innerHTML = `
-        <h5 class="font-medium text-gray-900">Dependent ${dependentIndex + 1}</h5>
+        <h6 class="font-medium text-gray-900">Dependent ${dependentIndex + 1}</h6>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input type="text" placeholder="Full Name" class="dependent-name rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-            <input type="text" placeholder="SSN (xxx-xx-xxxx)" class="dependent-ssn rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-            <input type="text" placeholder="Relationship" class="dependent-relationship rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-            <input type="date" placeholder="Date of Birth" class="dependent-dob rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+            <input type="text" placeholder="Full Name" class="dependent-name rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+            <input type="text" placeholder="SSN (xxx-xx-xxxx)" class="dependent-ssn rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+            <input type="text" placeholder="Relationship" class="dependent-relationship rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+            <input type="date" placeholder="Date of Birth" class="dependent-dob rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
         </div>
         <button type="button" class="remove-dependent text-red-600 hover:text-red-800 text-sm">Remove Dependent</button>
     `;
@@ -799,41 +827,43 @@ async function loadUserData() {
     
     try {
         const response = await fetch('/api/auth/me', {
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            }
-        });
+           headers: {
+               'Authorization': `Bearer ${authToken}`
+           }
+       });
 
-        if (response.ok) {
-            const userData = await response.json();
-            currentUser = userData;
-            
-            // Pre-fill forms with existing data
-            if (userData.taxInfo) {
-                populateTaxInfoForm(userData.taxInfo);
-            }
-        }
-    } catch (error) {
-        console.error('Failed to load user data:', error);
-    }
+       if (response.ok) {
+           const userData = await response.json();
+           currentUser = userData;
+           
+           // Pre-fill forms with existing data
+           if (userData.taxInfo) {
+               populateTaxInfoForm(userData.taxInfo);
+           }
+       }
+   } catch (error) {
+       console.error('Failed to load user data:', error);
+   }
 }
 
 function populateTaxInfoForm(taxInfo) {
-    // Populate W-9 fields if they exist
-    if (taxInfo.w9) {
-        const w9 = taxInfo.w9;
-        
-        const fields = [
-            { id: 'w9Name', value: w9.name },
-            { id: 'w9BusinessName', value: w9.businessName },
-            { id: 'w9TaxClassification', value: w9.federalTaxClassification },
-            { id: 'w9LlcTax', value: w9.llcTaxClassification },
-            { id: 'w9Address', value: w9.address },
-            { id: 'w9City', value: w9.city },
+   // Populate W-9 fields if they exist
+   if (taxInfo.w9) {
+       const w9 = taxInfo.w9;
+       
+       const fields = [
+           { id: 'w9Name', value: w9.name },
+           { id: 'w9BusinessName', value: w9.businessName },
+           { id: 'w9Address', value: w9.address },
+           { id: 'w9City', value: w9.city },
            { id: 'w9State', value: w9.state },
            { id: 'w9Zip', value: w9.zip },
+           { id: 'w9ExemptCode', value: w9.exemptPayeeCode },
+           { id: 'w9FatcaCode', value: w9.fatcaCode },
+           { id: 'w9AccountNumbers', value: w9.accountNumbers },
            { id: 'w9SSN', value: w9.ssn },
-           { id: 'w9EIN', value: w9.ein }
+           { id: 'w9EIN', value: w9.ein },
+           { id: 'w9LlcTax', value: w9.llcTaxClassification }
        ];
        
        fields.forEach(field => {
@@ -842,6 +872,24 @@ function populateTaxInfoForm(taxInfo) {
                element.value = field.value;
            }
        });
+
+       // Handle radio button for tax classification
+       if (w9.federalTaxClassification) {
+           const radioButton = document.querySelector(`input[name="taxClassification"][value="${w9.federalTaxClassification}"]`);
+           if (radioButton) {
+               radioButton.checked = true;
+               
+               // If LLC is selected, enable the LLC input
+               if (w9.federalTaxClassification === 'llc') {
+                   const llcInput = document.getElementById('w9LlcTax');
+                   if (llcInput) {
+                       llcInput.disabled = false;
+                       llcInput.required = true;
+                       llcInput.classList.remove('bg-gray-200');
+                   }
+               }
+           }
+       }
    }
    
    // Populate traditional tax info fields
@@ -850,7 +898,8 @@ function populateTaxInfoForm(taxInfo) {
        if (filingStatusEl) filingStatusEl.value = taxInfo.filingStatus;
    }
    
-   if (taxInfo.address) {
+   if (taxInfo.address && !taxInfo.w9) {
+       // Only populate address if W-9 data doesn't exist (to avoid overwriting)
        const addressFields = [
            { id: 'w9Address', key: 'street' },
            { id: 'w9City', key: 'city' },
