@@ -1,6 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
+const { User } = require('../database');
 const auth = require('../middleware/auth');
 const { Op } = require('sequelize');
 
