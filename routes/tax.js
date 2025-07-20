@@ -6,7 +6,7 @@ const { Op } = require('sequelize');
 
 const router = express.Router();
 
-// Update tax information
+// In routes/tax.js, update the '/info' PUT route:
 router.put('/info', auth, [
   body('filingStatus').isIn(['single', 'married-joint', 'married-separate', 'head-of-household', 'qualifying-widow'])
 ], async (req, res) => {
@@ -16,18 +16,19 @@ router.put('/info', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { filingStatus, dependents, address } = req.body;
+    const { filingStatus, dependents, address, w9Data } = req.body;
 
     const user = await User.findByPk(req.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Update taxInfo
+    // Update taxInfo with both traditional and W-9 data
     const updatedTaxInfo = {
       filingStatus,
       dependents: dependents || [],
-      address: address || {}
+      address: address || {},
+      w9: w9Data || {} // Add W-9 data
     };
 
     await user.update({ taxInfo: updatedTaxInfo });
@@ -41,7 +42,6 @@ router.put('/info', auth, [
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
-
 // Get tax information
 router.get('/info', auth, async (req, res) => {
   try {
