@@ -1,5 +1,5 @@
 const express = require('express');
-const mongoose = require('mongoose');
+const { Sequelize } = require('sequelize');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -17,19 +17,42 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 app.use(limiter);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/taxfiling', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+// PostgreSQL connection using Railway's DATABASE_URL
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  },
+  logging: false
 });
+
+// Test database connection
+sequelize.authenticate()
+  .then(() => {
+    console.log('✅ PostgreSQL connected successfully');
+    // Sync database tables
+    return sequelize.sync({ alter: true });
+  })
+  .then(() => {
+    console.log('✅ Database tables synced');
+  })
+  .catch(err => {
+    console.error('❌ Database connection error:', err);
+  });
+
+// Make sequelize available to routes
+app.locals.db = sequelize;
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -43,5 +66,7 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
+
+module.exports = { sequelize };
