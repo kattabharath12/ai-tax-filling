@@ -62,25 +62,41 @@ router.get('/info', auth, async (req, res) => {
 
 // Generate 1098 form data
 router.post('/generate-1098', auth, async (req, res) => {
+  console.log('=== FORM 1098 GENERATION DEBUG ===');
+  console.log('User ID:', req.userId);
+  
   try {
     const user = await User.findByPk(req.userId);
     if (!user) {
+      console.log('User not found:', req.userId);
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('User documents:', JSON.stringify(user.documents, null, 2));
+    console.log('User found. Full user data:', JSON.stringify({
+      id: user.id,
+      email: user.email,
+      documents: user.documents,
+      taxInfo: user.taxInfo
+    }, null, 2));
 
     // Find W-2 documents from user.documents array
     const documents = user.documents || [];
-    const w2Documents = documents.filter(doc => doc.type === 'w2');
+    console.log('Raw documents array:', JSON.stringify(documents, null, 2));
     
-    console.log('W-2 documents found:', w2Documents.length);
+    const w2Documents = documents.filter(doc => {
+      console.log('Checking document:', doc, 'Type:', doc.type, 'Is W-2?', doc.type === 'w2');
+      return doc.type === 'w2';
+    });
+    
+    console.log('Filtered W-2 documents:', JSON.stringify(w2Documents, null, 2));
+    console.log('W-2 documents count:', w2Documents.length);
     
     if (w2Documents.length === 0) {
+      console.log('NO W-2 DOCUMENTS FOUND!');
       return res.status(400).json({ message: 'No W-2 documents found. Please upload W-2 first.' });
     }
 
-    // Generate 1098 form based on extracted W-2 data
+    // Rest of the form generation code...
     const form1098Data = {
       taxYear: new Date().getFullYear() - 1,
       taxpayer: {
@@ -140,6 +156,8 @@ router.post('/generate-1098', auth, async (req, res) => {
     };
 
     await user.update({ taxReturn: updatedTaxReturn });
+
+    console.log('=== FORM 1098 GENERATION COMPLETE ===');
 
     res.json({ 
       message: '1098 form generated successfully', 
