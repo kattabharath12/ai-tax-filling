@@ -96,7 +96,8 @@ const extractW2Data = async (imagePath) => {
 
 // Upload W-2 document
 router.post('/w2', auth, upload.single('w2Document'), async (req, res) => {
-  console.log('W-2 upload request received');
+  console.log('=== W-2 UPLOAD DEBUG ===');
+  console.log('User ID:', req.userId);
   
   try {
     if (!req.file) {
@@ -116,6 +117,8 @@ router.post('/w2', auth, upload.single('w2Document'), async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    console.log('User found, current documents:', JSON.stringify(user.documents, null, 2));
+
     // Extract data from the uploaded document
     console.log('Starting data extraction...');
     const extractedData = await extractW2Data(req.file.path);
@@ -129,12 +132,22 @@ router.post('/w2', auth, upload.single('w2Document'), async (req, res) => {
       extractedData: extractedData
     };
 
+    console.log('Document info to save:', JSON.stringify(documentInfo, null, 2));
+
     // Add to user's documents array
     const currentDocuments = user.documents || [];
+    console.log('Current documents before update:', currentDocuments);
+    
     currentDocuments.push(documentInfo);
+    console.log('Documents after push:', JSON.stringify(currentDocuments, null, 2));
 
-    await user.update({ documents: currentDocuments });
-    console.log('Document saved to database');
+    // Update the user
+    const updateResult = await user.update({ documents: currentDocuments });
+    console.log('Update result:', updateResult ? 'SUCCESS' : 'FAILED');
+
+    // Verify the save
+    const verifyUser = await User.findByPk(req.userId);
+    console.log('Verification - documents after save:', JSON.stringify(verifyUser.documents, null, 2));
 
     // Clean up uploaded file
     try {
@@ -145,6 +158,8 @@ router.post('/w2', auth, upload.single('w2Document'), async (req, res) => {
     } catch (unlinkError) {
       console.warn('Could not delete temporary file:', unlinkError.message);
     }
+
+    console.log('=== W-2 UPLOAD COMPLETE ===');
 
     res.json({
       message: 'W-2 document uploaded and processed successfully',
@@ -165,7 +180,6 @@ router.post('/w2', auth, upload.single('w2Document'), async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
-
 // Get uploaded documents
 router.get('/documents', auth, async (req, res) => {
   try {
