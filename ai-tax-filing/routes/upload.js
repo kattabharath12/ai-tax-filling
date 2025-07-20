@@ -13,7 +13,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'uploads/';
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
@@ -40,7 +40,9 @@ const upload = multer({
 // Extract text from W-2 using OCR
 const extractW2Data = async (imagePath) => {
   try {
-    const { data: { text } } = await Tesseract.recognize(imagePath, 'eng');
+    const { data: { text } } = await Tesseract.recognize(imagePath, 'eng', {
+      logger: m => console.log('OCR Progress:', m)
+    });
     
     // Simple regex patterns to extract common W-2 fields
     const patterns = {
@@ -58,6 +60,10 @@ const extractW2Data = async (imagePath) => {
       const match = text.match(pattern);
       if (match) {
         extractedData[field] = match[1] || match[0];
+        // Clean up currency values
+        if (field !== 'employerEIN' && field !== 'employeeSSN') {
+          extractedData[field] = extractedData[field].replace(/[,$]/g, '');
+        }
       }
     }
 
@@ -75,7 +81,7 @@ router.post('/w2', auth, upload.single('w2Document'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const user = await User.findById(req.userId);
+    const user = await User.findByPk(req.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -83,28 +89,43 @@ router.post('/w2', auth, upload.single('w2Document'), async (req, res) => {
     // Extract data from the uploaded document
     const extractedData = await extractW2Data(req.file.path);
 
-    // Save document info to user
+    // Create document info
     const documentInfo = {
       type: 'w2',
       filename: req.file.filename,
+      uploadDate: new Date(),
       extractedData: extractedData
     };
 
-    user.documents.push(documentInfo);
-    await user.save();
+    // Add to user's documents array
+    const currentDocuments = user.documents || [];
+    currentDocuments.push(documentInfo);
+
+    await user.update({ documents: currentDocuments });
 
     // Clean up uploaded file
-    fs.unlinkSync(req.file.path);
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (unlinkError) {
+      console.warn('Could not delete temporary file:', unlinkError.message);
+    }
 
     res.json({
       message: 'W-2 document uploaded and processed successfully',
       extractedData: extractedData
     });
   } catch (error) {
+    console.error('Upload error:', error);
+    
     // Clean up file if error occurs
     if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.warn('Could not delete temporary file after error:', unlinkError.message);
+      }
     }
+    
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -112,30 +133,41 @@ router.post('/w2', auth, upload.single('w2Document'), async (req, res) => {
 // Get uploaded documents
 router.get('/documents', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('documents');
+    const user = await User.findByPk(req.userId, {
+      attributes: ['documents']
+    });
+    
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json(user.documents);
+    res.json(user.documents || []);
   } catch (error) {
+    console.error('Get documents error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
 // Delete document
-router.delete('/documents/:docId', auth, async (req, res) => {
+router.delete('/documents/:docIndex', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findByPk(req.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.documents = user.documents.filter(doc => doc._id.toString() !== req.params.docId);
-    await user.save();
-
-    res.json({ message: 'Document deleted successfully' });
+    const docIndex = parseInt(req.params.docIndex);
+    const currentDocuments = user.documents || [];
+    
+    if (docIndex >= 0 && docIndex < currentDocuments.length) {
+      currentDocuments.splice(docIndex, 1);
+      await user.update({ documents: currentDocuments });
+      res.json({ message: 'Document deleted successfully' });
+    } else {
+      res.status(404).json({ message: 'Document not found' });
+    }
   } catch (error) {
+    console.error('Delete document error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
