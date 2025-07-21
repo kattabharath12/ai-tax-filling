@@ -259,77 +259,361 @@
             </div>
         </div>
 
-        <div class="content-grid">
-            <div class="info-card">
-                <h2 class="card-title">Review Your Tax Return (Form 1098)</h2>
-                
-                <div class="info-section">
-                    <div class="section-header">Taxpayer Information</div>
-                    <div class="info-row">
-                        <span class="info-label">Name:</span>
-                        <span class="info-value">Sai K</span>
+        <!-- Auth Section -->
+        <div id="authSection" class="space-y-8">
+            <!-- Login Form -->
+            <div id="loginForm" class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Login to Your Account</h2>
+                <form id="loginFormElement">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="loginEmail" required 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="loginPassword" required 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                        </div>
+                        <button type="submit" 
+                                class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Login
+                        </button>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">SSN:</span>
-                        <span class="info-value">123-45-6789</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Filing Status:</span>
-                        <span class="info-value">Single</span>
-                    </div>
-                </div>
-
-                <div class="info-section">
-                    <div class="section-header">Deductions</div>
-                    <div class="info-row">
-                        <span class="info-label">Standard Deduction:</span>
-                        <span class="info-value amount">$13,850</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Itemized Deductions:</span>
-                        <span class="info-value">$0</span>
-                    </div>
-                </div>
+                </form>
+                <p class="mt-4 text-center text-sm text-gray-600">
+                    Don't have an account? 
+                    <button id="showSignup" class="text-blue-600 hover:text-blue-800">Sign up here</button>
+                </p>
             </div>
 
-            <div class="info-card">
-                <h2 class="card-title">Income Information</h2>
-                
-                <div class="info-section">
-                    <div class="section-header">Wages & Withholdings</div>
-                    <div class="info-row">
-                        <span class="info-label">Total Wages:</span>
-                        <span class="info-value amount">$200,000</span>
+            <!-- Signup Form -->
+            <div id="signupForm" class="bg-white rounded-lg shadow p-6 hidden">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Create Your Account</h2>
+                <form id="signupFormElement">
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">First Name</label>
+                                <input type="text" id="signupFirstName" required 
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Last Name</label>
+                                <input type="text" id="signupLastName" required 
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="signupEmail" required 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Phone (Optional)</label>
+                            <input type="tel" id="signupPhone" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="signupPassword" required minlength="6"
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border">
+                        </div>
+                        <button type="submit" 
+                                class="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                            Create Account
+                        </button>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Federal Tax Withheld:</span>
-                        <span class="info-value amount">$30,000</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Social Security Wages:</span>
-                        <span class="info-value amount">$200,000</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Medicare Wages:</span>
-                        <span class="info-value amount">$200,000</span>
-                    </div>
-                </div>
-
-                <div class="info-section">
-                    <div class="section-header">Dependents</div>
-                    <div class="info-row">
-                        <span class="info-label">Dependents Claimed:</span>
-                        <span class="info-value">No dependents claimed</span>
-                    </div>
-                </div>
+                </form>
+                <p class="mt-4 text-center text-sm text-gray-600">
+                    Already have an account? 
+                    <button id="showLogin" class="text-blue-600 hover:text-blue-800">Login here</button>
+                </p>
             </div>
         </div>
 
-        <div class="total-section">
-            <h3>Total Tax Owed</h3>
-            <div class="total-amount">$XXX,XXX</div>
-            <p>Review all information above before proceeding</p>
-            <button class="continue-btn">Continue to Submit</button>
+        <!-- Dashboard Section -->
+        <div id="dashboardSection" class="hidden">
+            <!-- Progress Steps -->
+            <div class="progress-bar">
+                <div class="progress-steps">
+                    <div id="step1" class="step active">1</div>
+                    <div class="step-line"></div>
+                    <div id="step2" class="step inactive">2</div>
+                    <div class="step-line"></div>
+                    <div id="step3" class="step inactive">3</div>
+                    <div class="step-line"></div>
+                    <div id="step4" class="step inactive">4</div>
+                    <div class="step-line"></div>
+                    <div id="step5" class="step inactive">5</div>
+                </div>
+                <div class="step-labels">
+                    <span>W-9 Form</span>
+                    <span>Upload W-2</span>
+                    <span>Review 1098</span>
+                    <span>Payment</span>
+                    <span>Submit</span>
+                </div>
+            </div>
+
+            <!-- Step 1: W-9 Form -->
+            <div id="taxInfoStep" class="info-card">
+                <h2 class="card-title">Complete W-9 Form</h2>
+                <form id="taxInfoForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Full Legal Name</label>
+                            <input type="text" id="w9Name" required 
+                                   class="w-full p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Business Name (if applicable)</label>
+                            <input type="text" id="w9BusinessName" 
+                                   class="w-full p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Federal Tax Classification</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="individual" class="mr-2">
+                                <span>Individual/Sole Proprietor</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="c-corp" class="mr-2">
+                                <span>C Corporation</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="s-corp" class="mr-2">
+                                <span>S Corporation</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="taxClassification" value="partnership" class="mr-2">
+                                <span>Partnership</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Social Security Number</label>
+                            <input type="text" id="w9SSN" maxlength="11" placeholder="XXX-XX-XXXX"
+                                   class="w-full p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Filing Status</label>
+                            <select id="filingStatus" required 
+                                    class="w-full p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none">
+                                <option value="">Select Filing Status</option>
+                                <option value="single">Single</option>
+                                <option value="married-joint">Married Filing Jointly</option>
+                                <option value="married-separate">Married Filing Separately</option>
+                                <option value="head-of-household">Head of Household</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                        <input type="text" id="w9Address" required 
+                               class="w-full p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none mb-3"
+                               placeholder="Street Address">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="text" id="w9City" required 
+                                   class="w-full p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none"
+                                   placeholder="City">
+                            <input type="text" id="w9State" required maxlength="2"
+                                   class="w-full p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none"
+                                   placeholder="State">
+                            <input type="text" id="w9Zip" required pattern="[0-9]{5}(-[0-9]{4})?"
+                                   class="w-full p-3 border border-gray-300 rounded-md focus:border-blue-500 focus:outline-none"
+                                   placeholder="ZIP Code">
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 class="font-medium text-gray-900 mb-3">Dependents</h5>
+                        <div id="dependentsContainer" class="space-y-3"></div>
+                        <button type="button" id="addDependent" 
+                                class="mt-3 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+                            + Add Dependent
+                        </button>
+                    </div>
+
+                    <button type="submit" 
+                            class="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 font-medium">
+                        Save Information and Continue
+                    </button>
+                </form>
+            </div>
+
+            <!-- Step 2: Upload W-2 -->
+            <div id="uploadStep" class="info-card hidden">
+                <h2 class="card-title">Upload W-2 Documents</h2>
+                
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <input type="file" id="w2Upload" accept="image/*,.pdf" class="hidden">
+                    <div id="uploadArea" class="cursor-pointer">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <p class="mt-2 text-gray-600">Click to upload your W-2 documents</p>
+                        <p class="text-sm text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                    </div>
+                </div>
+
+                <div id="uploadedDocs" class="mt-6 space-y-3"></div>
+
+                <button id="continueToReview" 
+                        class="mt-6 w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+                        disabled>
+                    Generate Tax Form
+                </button>
+            </div>
+
+            <!-- Step 3: Review Form -->
+            <div id="reviewStep" class="hidden">
+                <div class="content-grid">
+                    <div class="info-card">
+                        <h2 class="card-title">Review Your Tax Return (Form 1098)</h2>
+                        
+                        <div class="info-section">
+                            <div class="section-header">Taxpayer Information</div>
+                            <div class="info-row">
+                                <span class="info-label">Name:</span>
+                                <span class="info-value" id="reviewName">Loading...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">SSN:</span>
+                                <span class="info-value" id="reviewSSN">Loading...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Filing Status:</span>
+                                <span class="info-value" id="reviewFilingStatus">Loading...</span>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <div class="section-header">Deductions</div>
+                            <div class="info-row">
+                                <span class="info-label">Standard Deduction:</span>
+                                <span class="info-value amount" id="reviewStandardDeduction">Loading...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Itemized Deductions:</span>
+                                <span class="info-value" id="reviewItemizedDeductions">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h2 class="card-title">Income Information</h2>
+                        
+                        <div class="info-section">
+                            <div class="section-header">Wages & Withholdings</div>
+                            <div class="info-row">
+                                <span class="info-label">Total Wages:</span>
+                                <span class="info-value amount" id="reviewWages">Loading...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Federal Tax Withheld:</span>
+                                <span class="info-value amount" id="reviewFederalTax">Loading...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Social Security Wages:</span>
+                                <span class="info-value amount" id="reviewSSWages">Loading...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Medicare Wages:</span>
+                                <span class="info-value amount" id="reviewMedicareWages">Loading...</span>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <div class="section-header">Dependents</div>
+                            <div class="info-row">
+                                <span class="info-label">Dependents Claimed:</span>
+                                <span class="info-value" id="reviewDependents">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="total-section">
+                    <h3>Tax Calculation</h3>
+                    <div class="total-amount" id="reviewTaxAmount">Calculating...</div>
+                    <p>Review all information above before proceeding</p>
+                    <div class="mt-6 flex space-x-4">
+                        <button id="editForm" 
+                                class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-md hover:bg-gray-700">
+                            Edit Form
+                        </button>
+                        <button id="proceedToPayment" 
+                                class="flex-1 continue-btn">
+                            Proceed to Payment
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Payment -->
+            <div id="paymentStep" class="info-card hidden">
+                <h2 class="card-title">Payment</h2>
+                
+                <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                    <h4 class="font-medium text-blue-900">Tax Filing Service</h4>
+                    <p class="text-blue-700">Professional tax return preparation and e-filing</p>
+                    <p class="text-2xl font-bold text-blue-900 mt-2">$49.99</p>
+                </div>
+
+                <div id="paymentForm">
+                    <div id="card-element" class="p-3 border border-gray-300 rounded-md">
+                        <!-- Stripe Elements will create form elements here -->
+                    </div>
+                    <div id="card-errors" role="alert" class="text-red-600 text-sm mt-2"></div>
+                    
+                    <button id="submitPayment" 
+                            class="mt-6 w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700">
+                        Pay $49.99
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 5: Final Submission -->
+            <div id="submissionStep" class="info-card hidden">
+                <h2 class="card-title">Final Submission</h2>
+                
+                <div class="text-center py-8">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                        <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-2">Ready to Submit</h4>
+                    <p class="text-gray-600 mb-6">Your tax return has been prepared and payment confirmed. Click below to submit to the IRS.</p>
+                    
+                    <button id="finalSubmit" 
+                            class="continue-btn">
+                        Submit Tax Return
+                    </button>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div id="successMessage" class="info-card hidden">
+                <div class="text-center py-8">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                        <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Tax Return Submitted!</h3>
+                    <p class="text-gray-600 mb-6">Your tax return has been successfully submitted to the IRS. You will receive email updates on the processing status.</p>
+                    <p class="text-sm text-gray-500">Reference ID: <span id="submissionId" class="font-mono"></span></p>
+                </div>
+            </div>
         </div>
     </div>
 </body>
