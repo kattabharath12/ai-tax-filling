@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize Stripe
     if (window.Stripe) {
-        stripe = Stripe('pk_test_51234567890abcdef'); // Replace with your real Stripe publishable key
+        stripe = Stripe('pk_test_YOUR_ACTUAL_STRIPE_KEY_HERE'); // Replace with your real Stripe publishable key
     }
     
     if (authToken) {
@@ -57,7 +57,7 @@ function initializeEventListeners() {
         signupForm.addEventListener('submit', handleSignup);
     }
 
-    // W-9/Tax info form (now combined)
+    // W-9/Tax info form
     const taxInfoForm = document.getElementById('taxInfoForm');
     const addDependentBtn = document.getElementById('addDependent');
     
@@ -69,28 +69,14 @@ function initializeEventListeners() {
         addDependentBtn.addEventListener('click', addDependentFields);
     }
 
-    // W-9 specific listeners - updated for radio buttons
+    // W-9 specific listeners
     const taxClassificationRadios = document.querySelectorAll('input[name="taxClassification"]');
-    const llcInput = document.getElementById('w9LlcTax');
     const w9SSN = document.getElementById('w9SSN');
-    const w9EIN = document.getElementById('w9EIN');
-    
+
     // Handle tax classification radio buttons
     taxClassificationRadios.forEach(radio => {
         radio.addEventListener('change', function(e) {
-            if (llcInput) {
-                if (e.target.value === 'llc') {
-                    llcInput.disabled = false;
-                    llcInput.required = true;
-                    llcInput.classList.remove('bg-gray-200');
-                    llcInput.focus();
-                } else {
-                    llcInput.disabled = true;
-                    llcInput.required = false;
-                    llcInput.value = '';
-                    llcInput.classList.add('bg-gray-200');
-                }
-            }
+            console.log('Tax classification changed to:', e.target.value);
         });
     });
     
@@ -102,17 +88,6 @@ function initializeEventListeners() {
                 value = `${value.slice(0, 3)}-${value.slice(3)}`;
             } else if (value.length > 5) {
                 value = `${value.slice(0, 3)}-${value.slice(3, 5)}-${value.slice(5, 9)}`;
-            }
-            e.target.value = value;
-        });
-    }
-    
-    // Format EIN input
-    if (w9EIN) {
-        w9EIN.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 2) {
-                value = `${value.slice(0, 2)}-${value.slice(2, 9)}`;
             }
             e.target.value = value;
         });
@@ -156,59 +131,6 @@ function initializeEventListeners() {
     if (finalSubmit) {
         finalSubmit.addEventListener('click', handleFinalSubmission);
     }
-
-    // Debug buttons (if they exist)
-    const debugBtn = document.getElementById('debugBtn');
-    if (debugBtn) {
-        debugBtn.addEventListener('click', async () => {
-            try {
-                console.log('Making debug request...');
-                const response = await fetch('/api/tax/debug-user', {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-                const data = await response.json();
-                console.log('=== DEBUG DATABASE CONTENT ===');
-                console.log('User ID:', data.userId);
-                console.log('Email:', data.email);
-                console.log('Documents Count:', data.documentsCount);
-                console.log('Documents:', data.documents);
-                console.log('Tax Info:', data.taxInfo);
-                console.log('===============================');
-                
-                showAlert(`Found ${data.documentsCount} documents. Check console for details.`, 'info');
-            } catch (error) {
-                console.error('Debug error:', error);
-                showAlert('Debug request failed. Check console.', 'error');
-            }
-        });
-    }
-
-    const testUploadBtn = document.getElementById('testUploadRoute');
-    if (testUploadBtn) {
-        testUploadBtn.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/api/upload/documents', {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Upload route works! Documents:', data);
-                    showAlert(`Upload route works! Found ${data.length} documents.`, 'success');
-                } else {
-                    console.log('Upload route response:', response.status, response.statusText);
-                    showAlert(`Upload route returned: ${response.status}`, 'warning');
-                }
-            } catch (error) {
-                console.error('Upload route test error:', error);
-                showAlert('Upload route test failed', 'error');
-            }
-        });
-    }
 }
 
 // UI Functions
@@ -242,10 +164,7 @@ function showDashboard() {
         }
     }
     
-    // Only go to step 1 if we're not already showing the dashboard
-    if (currentStep === 1) {
-        showStep(1);
-    }
+    showStep(1);
 }
 
 function toggleAuthForms(form) {
@@ -267,7 +186,11 @@ function showStep(step) {
     console.log('Showing step:', step);
     
     // Hide all steps
-    document.querySelectorAll('[id$="Step"]').forEach(el => el.classList.add('hidden'));
+    const steps = ['taxInfoStep', 'uploadStep', 'reviewStep', 'paymentStep', 'submissionStep'];
+    steps.forEach(stepId => {
+        const element = document.getElementById(stepId);
+        if (element) element.classList.add('hidden');
+    });
     
     // Show current step
     const stepElements = {
@@ -287,10 +210,16 @@ function showStep(step) {
     for (let i = 1; i <= 5; i++) {
         const stepEl = document.getElementById(`step${i}`);
         if (stepEl) {
-            stepEl.className = `w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                i < step ? 'step-completed' : 
-                i === step ? 'step-active' : 'step-inactive'
-            }`;
+            // Clear existing classes
+            stepEl.className = 'step';
+            
+            if (i < step) {
+                stepEl.classList.add('completed');
+            } else if (i === step) {
+                stepEl.classList.add('active');
+            } else {
+                stepEl.classList.add('inactive');
+            }
         }
     }
     
@@ -380,13 +309,13 @@ async function handleSignup(e) {
 function handleLogout() {
     authToken = null;
     currentUser = null;
-    currentStep = 1; // Reset to step 1
+    currentStep = 1;
     localStorage.removeItem('authToken');
     showAuth();
     showAlert('Logged out successfully', 'success');
 }
 
-// W-9/Tax Information Functions (Updated for radio buttons)
+// W-9/Tax Information Functions
 async function handleTaxInfoSubmit(e) {
     e.preventDefault();
     console.log('W-9 form submitted');
@@ -395,12 +324,11 @@ async function handleTaxInfoSubmit(e) {
     // Get selected tax classification from radio buttons
     const selectedClassification = document.querySelector('input[name="taxClassification"]:checked');
     
-    // Validate that either SSN or EIN is provided
+    // Validate that SSN is provided
     const ssn = document.getElementById('w9SSN')?.value || '';
-    const ein = document.getElementById('w9EIN')?.value || '';
     
-    if (!ssn && !ein) {
-        showAlert('Please provide either a Social Security Number or Employer Identification Number.', 'error');
+    if (!ssn) {
+        showAlert('Please provide your Social Security Number.', 'error');
         showLoading(false);
         return;
     }
@@ -416,16 +344,11 @@ async function handleTaxInfoSubmit(e) {
         name: document.getElementById('w9Name')?.value || '',
         businessName: document.getElementById('w9BusinessName')?.value || '',
         federalTaxClassification: selectedClassification.value,
-        llcTaxClassification: document.getElementById('w9LlcTax')?.value || '',
-        exemptPayeeCode: document.getElementById('w9ExemptCode')?.value || '',
-        fatcaCode: document.getElementById('w9FatcaCode')?.value || '',
         address: document.getElementById('w9Address')?.value || '',
         city: document.getElementById('w9City')?.value || '',
         state: document.getElementById('w9State')?.value || '',
         zip: document.getElementById('w9Zip')?.value || '',
-        accountNumbers: document.getElementById('w9AccountNumbers')?.value || '',
-        ssn: ssn,
-        ein: ein
+        ssn: ssn
     };
 
     // Collect traditional tax info
@@ -457,7 +380,7 @@ async function handleTaxInfoSubmit(e) {
 
         if (response.ok) {
             showAlert('W-9 and tax information saved successfully!', 'success');
-            showStep(2); // Go directly to upload step
+            showStep(2);
         } else {
             showAlert(data.message || 'Failed to save information', 'error');
         }
@@ -489,7 +412,6 @@ function addDependentFields() {
         <button type="button" class="remove-dependent text-red-600 hover:text-red-800 text-sm">Remove Dependent</button>
     `;
     
-    // Add event listener for remove button (no inline onclick)
     const removeBtn = dependentDiv.querySelector('.remove-dependent');
     removeBtn.addEventListener('click', function() {
         dependentDiv.remove();
@@ -521,20 +443,17 @@ async function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    console.log('🔥 FRONTEND: File upload started');
+    console.log('File upload started');
     console.log('File details:', {
         name: file.name,
         size: file.size,
         type: file.type
     });
-    console.log('Auth token exists:', !!authToken);
 
     showLoading(true);
 
     const formData = new FormData();
     formData.append('w2Document', file);
-
-    console.log('📤 Making upload request to /api/upload/w2');
 
     try {
         const response = await fetch('/api/upload/w2', {
@@ -545,14 +464,8 @@ async function handleFileUpload(e) {
             body: formData
         });
 
-        console.log('📥 Upload response received:', {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok
-        });
-
+        console.log('Upload response:', response.status);
         const data = await response.json();
-        console.log('📄 Response data:', data);
 
         if (response.ok) {
             showAlert('W-2 uploaded and processed successfully!', 'success');
@@ -569,7 +482,7 @@ async function handleFileUpload(e) {
             showAlert(data.message || 'Upload failed', 'error');
         }
     } catch (error) {
-        console.error('💥 Upload error:', error);
+        console.error('Upload error:', error);
         showAlert('Upload failed. Please try again.', 'error');
     } finally {
         showLoading(false);
@@ -597,7 +510,7 @@ function displayUploadedDocument(filename, extractedData) {
     container.appendChild(docDiv);
 }
 
-// Form 1098 Generation
+// Form 1098 Generation and Display
 async function generateForm1098() {
     console.log('Generating Form 1098...');
     showLoading(true);
@@ -629,68 +542,89 @@ async function generateForm1098() {
 }
 
 function displayForm1098(formData) {
-    const container = document.getElementById('form1098Content');
-    if (!container) return;
+    console.log('Displaying Form 1098 with data:', formData);
     
-    container.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-4">
-                <h4 class="font-medium text-gray-900">Taxpayer Information</h4>
-                <div class="space-y-2 text-sm">
-                    <p><span class="font-medium">Name:</span> ${formData.taxpayer.name}</p>
-                    <p><span class="font-medium">SSN:</span> ${formData.taxpayer.ssn}</p>
-                    <p><span class="font-medium">Filing Status:</span> ${formData.filingStatus}</p>
-                </div>
-            </div>
-            
-            <div class="space-y-4">
-                <h4 class="font-medium text-gray-900">Income Information</h4>
-                <div class="space-y-2 text-sm">
-                    <p><span class="font-medium">Total Wages:</span> $${formData.income.wages.toLocaleString()}</p>
-                    <p><span class="font-medium">Federal Tax Withheld:</span> $${formData.income.federalTaxWithheld.toLocaleString()}</p>
-                    <p><span class="font-medium">Social Security Wages:</span> $${formData.income.socialSecurityWages.toLocaleString()}</p>
-                    <p><span class="font-medium">Medicare Wages:</span> $${formData.income.medicareWages.toLocaleString()}</p>
-                </div>
-            </div>
-            
-            <div class="space-y-4">
-                <h4 class="font-medium text-gray-900">Deductions</h4>
-                <div class="space-y-2 text-sm">
-                    <p><span class="font-medium">Standard Deduction:</span> $${formData.deductions.standardDeduction.toLocaleString()}</p>
-                    <p><span class="font-medium">Itemized Deductions:</span> $${formData.deductions.itemizedDeductions.toLocaleString()}</p>
-                </div>
-            </div>
-            
-            <div class="space-y-4">
-                <h4 class="font-medium text-gray-900">Dependents</h4>
-                <div class="space-y-2 text-sm">
-                    ${formData.dependents.length > 0 ? 
-                        formData.dependents.map(dep => `<p>${dep.name} (${dep.relationship})</p>`).join('') :
-                        '<p>No dependents claimed</p>'
-                    }
-                </div>
-            </div>
-        </div>
-        
-        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h4 class="font-medium text-blue-900 mb-2">Tax Calculation Summary</h4>
-            <div class="space-y-1 text-sm text-blue-800">
-                <p>Adjusted Gross Income: $${formData.income.wages.toLocaleString()}</p>
-                <p>Taxable Income: $${Math.max(0, formData.income.wages - formData.deductions.standardDeduction).toLocaleString()}</p>
-                <p>Tax Liability: $${calculateTaxLiability(formData).toLocaleString()}</p>
-                <p class="font-medium">Refund/Amount Owed: $${(formData.income.federalTaxWithheld - calculateTaxLiability(formData)).toLocaleString()}</p>
-            </div>
-        </div>
-    `;
+    // Update taxpayer information
+    const reviewName = document.getElementById('reviewName');
+    const reviewSSN = document.getElementById('reviewSSN');
+    const reviewFilingStatus = document.getElementById('reviewFilingStatus');
+    
+    if (reviewName) reviewName.textContent = formData.taxpayer.name || 'Not provided';
+    if (reviewSSN) reviewSSN.textContent = formData.taxpayer.ssn || 'Not provided';
+    if (reviewFilingStatus) {
+        const statusMap = {
+            'single': 'Single',
+            'married-joint': 'Married Filing Jointly',
+            'married-separate': 'Married Filing Separately',
+            'head-of-household': 'Head of Household',
+            'qualifying-widow': 'Qualifying Widow(er)'
+        };
+        reviewFilingStatus.textContent = statusMap[formData.filingStatus] || formData.filingStatus;
+    }
+    
+    // Update income information
+    const reviewWages = document.getElementById('reviewWages');
+    const reviewFederalTax = document.getElementById('reviewFederalTax');
+    const reviewSSWages = document.getElementById('reviewSSWages');
+    const reviewMedicareWages = document.getElementById('reviewMedicareWages');
+    
+    if (reviewWages) reviewWages.textContent = `$${formData.income.wages.toLocaleString()}`;
+    if (reviewFederalTax) reviewFederalTax.textContent = `$${formData.income.federalTaxWithheld.toLocaleString()}`;
+    if (reviewSSWages) reviewSSWages.textContent = `$${formData.income.socialSecurityWages.toLocaleString()}`;
+    if (reviewMedicareWages) reviewMedicareWages.textContent = `$${formData.income.medicareWages.toLocaleString()}`;
+    
+    // Update deductions
+    const reviewStandardDeduction = document.getElementById('reviewStandardDeduction');
+    const reviewItemizedDeductions = document.getElementById('reviewItemizedDeductions');
+    
+    if (reviewStandardDeduction) reviewStandardDeduction.textContent = `$${formData.deductions.standardDeduction.toLocaleString()}`;
+    if (reviewItemizedDeductions) reviewItemizedDeductions.textContent = `$${formData.deductions.itemizedDeductions.toLocaleString()}`;
+    
+    // Update dependents
+    const reviewDependents = document.getElementById('reviewDependents');
+    if (reviewDependents) {
+        if (formData.dependents && formData.dependents.length > 0) {
+            reviewDependents.textContent = `${formData.dependents.length} dependent(s) claimed`;
+        } else {
+            reviewDependents.textContent = 'No dependents claimed';
+        }
+    }
+    
+    // Calculate and display tax amount
+    const taxLiability = calculateTaxLiability(formData);
+    const refundOrOwed = formData.income.federalTaxWithheld - taxLiability;
+    
+    const reviewTaxAmount = document.getElementById('reviewTaxAmount');
+    if (reviewTaxAmount) {
+        if (refundOrOwed >= 0) {
+            reviewTaxAmount.textContent = `$${Math.abs(refundOrOwed).toLocaleString()} Refund`;
+            reviewTaxAmount.style.color = '#27ae60';
+        } else {
+            reviewTaxAmount.textContent = `$${Math.abs(refundOrOwed).toLocaleString()} Owed`;
+            reviewTaxAmount.style.color = '#e74c3c';
+        }
+    }
 }
 
 function calculateTaxLiability(formData) {
     const taxableIncome = Math.max(0, formData.income.wages - formData.deductions.standardDeduction);
-    // Simplified tax calculation for demo purposes
-    if (taxableIncome <= 10275) return Math.round(taxableIncome * 0.10);
-    if (taxableIncome <= 41775) return Math.round(1027.50 + (taxableIncome - 10275) * 0.12);
-    if (taxableIncome <= 89450) return Math.round(4807.50 + (taxableIncome - 41775) * 0.22);
-    return Math.round(taxableIncome * 0.22);
+    
+    // 2023 tax brackets for single filers
+    if (taxableIncome <= 11000) {
+        return Math.round(taxableIncome * 0.10);
+    } else if (taxableIncome <= 44725) {
+        return Math.round(1100 + (taxableIncome - 11000) * 0.12);
+    } else if (taxableIncome <= 95375) {
+        return Math.round(5147 + (taxableIncome - 44725) * 0.22);
+    } else if (taxableIncome <= 182050) {
+        return Math.round(16290 + (taxableIncome - 95375) * 0.24);
+    } else if (taxableIncome <= 231250) {
+        return Math.round(37104 + (taxableIncome - 182050) * 0.32);
+    } else if (taxableIncome <= 578125) {
+        return Math.round(52832 + (taxableIncome - 231250) * 0.35);
+    } else {
+        return Math.round(174238 + (taxableIncome - 578125) * 0.37);
+    }
 }
 
 // Payment Functions
@@ -732,7 +666,7 @@ async function handlePayment() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({ amount: 4999 }) // $49.99 in cents
+            body: JSON.stringify({ amount: 4999 })
         });
 
         const intentData = await intentResponse.json();
@@ -836,7 +770,6 @@ async function loadUserData() {
            const userData = await response.json();
            currentUser = userData;
            
-           // Pre-fill forms with existing data
            if (userData.taxInfo) {
                populateTaxInfoForm(userData.taxInfo);
            }
@@ -847,7 +780,6 @@ async function loadUserData() {
 }
 
 function populateTaxInfoForm(taxInfo) {
-   // Populate W-9 fields if they exist
    if (taxInfo.w9) {
        const w9 = taxInfo.w9;
        
@@ -858,12 +790,7 @@ function populateTaxInfoForm(taxInfo) {
            { id: 'w9City', value: w9.city },
            { id: 'w9State', value: w9.state },
            { id: 'w9Zip', value: w9.zip },
-           { id: 'w9ExemptCode', value: w9.exemptPayeeCode },
-           { id: 'w9FatcaCode', value: w9.fatcaCode },
-           { id: 'w9AccountNumbers', value: w9.accountNumbers },
-           { id: 'w9SSN', value: w9.ssn },
-           { id: 'w9EIN', value: w9.ein },
-           { id: 'w9LlcTax', value: w9.llcTaxClassification }
+           { id: 'w9SSN', value: w9.ssn }
        ];
        
        fields.forEach(field => {
@@ -873,51 +800,21 @@ function populateTaxInfoForm(taxInfo) {
            }
        });
 
-       // Handle radio button for tax classification
        if (w9.federalTaxClassification) {
            const radioButton = document.querySelector(`input[name="taxClassification"][value="${w9.federalTaxClassification}"]`);
            if (radioButton) {
                radioButton.checked = true;
-               
-               // If LLC is selected, enable the LLC input
-               if (w9.federalTaxClassification === 'llc') {
-                   const llcInput = document.getElementById('w9LlcTax');
-                   if (llcInput) {
-                       llcInput.disabled = false;
-                       llcInput.required = true;
-                       llcInput.classList.remove('bg-gray-200');
-                   }
-               }
            }
        }
    }
    
-   // Populate traditional tax info fields
    if (taxInfo.filingStatus) {
        const filingStatusEl = document.getElementById('filingStatus');
        if (filingStatusEl) filingStatusEl.value = taxInfo.filingStatus;
    }
    
-   if (taxInfo.address && !taxInfo.w9) {
-       // Only populate address if W-9 data doesn't exist (to avoid overwriting)
-       const addressFields = [
-           { id: 'w9Address', key: 'street' },
-           { id: 'w9City', key: 'city' },
-           { id: 'w9State', key: 'state' },
-           { id: 'w9Zip', key: 'zipCode' }
-       ];
-       
-       addressFields.forEach(field => {
-           const element = document.getElementById(field.id);
-           if (element && !element.value) { // Only populate if not already filled by W-9 data
-               element.value = taxInfo.address[field.key] || '';
-           }
-       });
-   }
-   
    if (taxInfo.dependents && taxInfo.dependents.length > 0) {
        taxInfo.dependents.forEach(() => addDependentFields());
-       // Populate dependent fields
        const dependentDivs = document.getElementById('dependentsContainer')?.children;
        if (dependentDivs) {
            taxInfo.dependents.forEach((dependent, index) => {
@@ -935,23 +832,6 @@ function populateTaxInfoForm(taxInfo) {
                }
            });
        }
-   }
-}
-
-function determineCurrentStep(userData) {
-   // Determine which step to show based on user's progress
-   if (!userData.taxInfo || (!userData.taxInfo.filingStatus && !userData.taxInfo.w9)) {
-       showStep(1);
-   } else if (!userData.documents || userData.documents.filter(doc => doc.type === 'w2').length === 0) {
-       showStep(2);
-   } else if (!userData.taxReturn || !userData.taxReturn.form1040) {
-       showStep(2);
-   } else if (!userData.payments || userData.payments.length === 0) {
-       showStep(3);
-   } else if (userData.taxReturn.status === 'draft' || userData.taxReturn.status === 'review') {
-       showStep(5);
-   } else {
-       showStep(1); // Default to step 1
    }
 }
 
@@ -985,8 +865,20 @@ function showAlert(message, type = 'info') {
 
 function enableFormEditing() {
    showAlert('Form editing enabled. You can modify the values above.', 'info');
+   // You can add actual form editing logic here
+   showStep(1); // Go back to step 1 for editing
 }
 
 function generateSubmissionId() {
    return 'TX' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 5).toUpperCase();
 }
+
+// Additional helper functions for debugging
+function debugUser() {
+    console.log('Current User:', currentUser);
+    console.log('Auth Token:', authToken ? 'Present' : 'Missing');
+    console.log('Current Step:', currentStep);
+}
+
+// Call this if you need to debug
+// debugUser();
